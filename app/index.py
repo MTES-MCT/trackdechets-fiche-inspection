@@ -1,10 +1,10 @@
+import datetime
+
 import pandas as pd
 from dash import html, dcc
-import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
-from os import getenv
 
 from app.app import dash_app, extra_config
 from app.time_config import time_delta_m, today
@@ -121,11 +121,14 @@ dash_app.layout = html.Main(
                     [
                         dbc.Col(
                             [
-                                html.P(f'le {today}'),
+                                html.P(f'le {datetime.datetime.strftime(today, "%d %b %Y à %H:%M")}'),
                                 html.P(["SIRET : " + etab['siret'],
                                         html.Br(),
                                         "S3IC/GUN : " + etab['codeS3ic']]),
-                                html.P(etab['address'])
+                                html.P(etab['address']),
+                                html.P('Données pour la période du ' +
+                                       datetime.datetime.strftime(app.time_config.date_n_days_ago, "%d %b %Y")
+                                       + ' à aujourd\'hui.', className='bold')
                             ], width=6
                         ),
                         dbc.Col(
@@ -147,18 +150,15 @@ dash_app.layout = html.Main(
                 ]),
                 dbc.Row([
                     dbc.Col([
-                        html.P('test')
-                    ], width=4),
-                    dbc.Col([
                         dcc.Graph(id='mois_quantités', figure=app.figures.dechets_recus_emis_mois, config=extra_config)
-                    ], width=4),
+                    ], width=12, lg=6),
                     dbc.Col([
-                        html.H4('BSD dangereux sur l\'année'),
+                        html.H4('BSD dangereux sur la période'),
                         html.P([
                             'Poids émis : ' + format_number(emis_poids) + ' t',
                             html.Br(),
                             'Poids reçu : ' + format_number(recus_poids) + ' t'])
-                    ], width=4),
+                    ], width=12, lg=6),
                 ])
             ],
         )

@@ -106,7 +106,7 @@ Copied and renamed from DSFR core CSS */
 
 
 /*
-Bootstrap berakpoints:
+Bootstrap breakpoints:
 https://getbootstrap.com/docs/5.1/layout/breakpoints/#available-breakpoints */
 
 /* Reduce the big callout number size above lg and below 1100px */
@@ -128,8 +128,4 @@ SPECIFIC to print
 */
 
 @media print {
-    body {
-        margin: 0.5cm;
-        border: 1px solid grey;
-    }
 }

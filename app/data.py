@@ -81,5 +81,5 @@ df_bsdd["poids"] = df_bsdd.apply(
 
 bsdd_grouped_nb_mois = get_bsdd_data()[['id', 'origine', 'mois']].groupby(by=['origine', 'mois'],
                                                                           as_index=False).count()
-bsdd_grouped_nb_mois['mois'] = [dt.strftime(date, "%b") for date in bsdd_grouped_nb_mois['mois']]
+bsdd_grouped_nb_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_nb_mois['mois']]
 
