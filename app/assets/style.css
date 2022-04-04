@@ -66,6 +66,10 @@ Copied and renamed from DSFR core CSS */
   font-display: swap;
 }
 
+.bold {
+  font-family: 'Marianne-Bold', sans-serif;
+}
+
 /* fr-callout customization */
 
 #layout-container .fr-callout {

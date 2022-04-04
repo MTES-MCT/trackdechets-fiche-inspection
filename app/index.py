@@ -9,6 +9,7 @@ from os import getenv
 from app.app import dash_app, extra_config
 from app.time_config import time_delta_m, today
 import app.data
+import app.figures
 
 # Override the 'none' template
 pio.templates["gouv"] = go.layout.Template(
@@ -85,8 +86,27 @@ def add_figure(fig, fig_id: str) -> dbc.Row:
     return row
 
 
+#
+# Établissement
+#
+
 df_etablissement: pd.DataFrame = app.data.get_company_data()
+print(df_etablissement)
 etab = df_etablissement.iloc[0]
+
+#
+# BSDDs
+#
+
+df_bsdd: pd.DataFrame = app.data.get_bsdd_data()
+
+emis = df_bsdd.query('origine == "émis"')
+emis_nb = emis.size
+emis_poids = emis['poids'].sum()
+
+recus = df_bsdd.query('origine == "recus"')
+recus_poids = recus['poids'].sum()
+
 
 dash_app.layout = html.Main(
     children=[
@@ -94,12 +114,13 @@ dash_app.layout = html.Main(
             fluid=True,
             id='layout-container',
             children=[
-
+                dbc.Row([
+                    html.H1(etab['name']),
+                ]),
                 dbc.Row(
                     [
                         dbc.Col(
                             [
-                                html.H1(etab['name']),
                                 html.P(f'le {today}'),
                                 html.P(["SIRET : " + etab['siret'],
                                         html.Br(),
@@ -110,17 +131,35 @@ dash_app.layout = html.Main(
                         dbc.Col(
                             [
                                 html.P('Les données pour cet établissement peuvent être consultées sur Trackdéchets.'),
-                                html.P('Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés de '
-                                       'déchets, mais ne comprennent pas :'),
+                                html.P('Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés,'
+                                       ' mais ne comprennent pas :'),
                                 html.Ul([
                                     html.Li('les éventuels BSD papiers non dématérialisés'),
-                                    html.Li('les bon d\'enlèvement (huiles usagées, pneus)'),
+                                    html.Li('les bons d\'enlèvement (huiles usagées, pneus)'),
                                     html.Li('les annexes 1 (petites quantités)')
                                 ])
-                            ]
+                            ], width=6
                         )
                     ]
                 ),
+                dbc.Row([
+                    html.H2('Données des bordereaux de suivi dématérialisés issues de Trackdéchets')
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        html.P('test')
+                    ], width=4),
+                    dbc.Col([
+                        dcc.Graph(id='mois_quantités', figure=app.figures.dechets_recus_emis_mois, config=extra_config)
+                    ], width=4),
+                    dbc.Col([
+                        html.H4('BSD dangereux sur l\'année'),
+                        html.P([
+                            'Poids émis : ' + format_number(emis_poids) + ' t',
+                            html.Br(),
+                            'Poids reçu : ' + format_number(recus_poids) + ' t'])
+                    ], width=4),
+                ])
             ],
         )
     ]
