@@ -4,6 +4,8 @@ body {
 
 }
 
+
+
 #layout-container {
     max-width: 1200px;
     margin: auto
@@ -114,5 +116,16 @@ https://getbootstrap.com/docs/5.1/layout/breakpoints/#available-breakpoints */
 @media (max-width: 768px) {
     .callout-number {
         font-size: 2rem
+    }
+}
+
+/*
+SPECIFIC to print
+*/
+
+@media print {
+    body {
+        margin: 0.5cm;
+        border: 1px solid grey;
     }
 }

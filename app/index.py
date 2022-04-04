@@ -1,3 +1,4 @@
+import pandas as pd
 from dash import html, dcc
 import plotly.express as px
 import plotly.io as pio
@@ -6,7 +7,7 @@ import dash_bootstrap_components as dbc
 from os import getenv
 
 from app.app import dash_app, extra_config
-from app.time_config import time_delta_m
+from app.time_config import time_delta_m, today
 import app.data
 
 # Override the 'none' template
@@ -14,11 +15,6 @@ pio.templates["gouv"] = go.layout.Template(
     layout=dict(
         font=dict(family="Marianne"),
         title=dict(
-            font=dict(
-                color='black',
-                size=22,
-                family='Marianne-Bold'
-            ),
             x=0.01
         ),
         paper_bgcolor='rgb(238, 238, 238)',
@@ -31,6 +27,7 @@ pio.templates["gouv"] = go.layout.Template(
 )
 
 pio.templates.default = "none+gouv"
+
 
 def format_number(input_number) -> str:
     return "{:,.0f}".format(input_number).replace(",", " ")
@@ -88,12 +85,42 @@ def add_figure(fig, fig_id: str) -> dbc.Row:
     return row
 
 
+df_etablissement: pd.DataFrame = app.data.get_company_data()
+etab = df_etablissement.iloc[0]
+
 dash_app.layout = html.Main(
     children=[
         dbc.Container(
             fluid=True,
             id='layout-container',
             children=[
+
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.H1(etab['name']),
+                                html.P(f'le {today}'),
+                                html.P(["SIRET : " + etab['siret'],
+                                        html.Br(),
+                                        "S3IC/GUN : " + etab['codeS3ic']]),
+                                html.P(etab['address'])
+                            ], width=6
+                        ),
+                        dbc.Col(
+                            [
+                                html.P('Les données pour cet établissement peuvent être consultées sur Trackdéchets.'),
+                                html.P('Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés de '
+                                       'déchets, mais ne comprennent pas :'),
+                                html.Ul([
+                                    html.Li('les éventuels BSD papiers non dématérialisés'),
+                                    html.Li('les bon d\'enlèvement (huiles usagées, pneus)'),
+                                    html.Li('les annexes 1 (petites quantités)')
+                                ])
+                            ]
+                        )
+                    ]
+                ),
             ],
         )
     ]
