@@ -8,6 +8,8 @@ import locale
 from app.cache_config import cache_timeout, appcache
 from app.time_config import *
 
+import app.utils
+
 # postgresql://admin:admin@localhost:5432/ibnse
 engine = sqlalchemy.create_engine(getenv("DATABASE_URL"))
 
@@ -56,7 +58,7 @@ def get_bsdd_data() -> pd.DataFrame:
         f"CAST((CAST(now() AS timestamp) + (INTERVAL '-{str(time_delta_m)} month')) AS timestamp)) "
         'UNION ALL '
         'SELECT "id", date_trunc(\'month\', "receivedAt") as mois,'
-        '"quantityReceived" as poids, \'recus\' as origine '
+        '"quantityReceived" as poids, \'reçus\' as origine '
         'FROM "default$default"."Form" '
         f'WHERE "recipientCompanySiret" = \'{SIRET}\' '
         'AND "default$default"."Form"."receivedAt" >= date_trunc(\'month\','
@@ -66,20 +68,19 @@ def get_bsdd_data() -> pd.DataFrame:
     return df_bsdd_query
 
 
-def normalize_quantity_received(row) -> float:
-    """Replace weights entered as kg instead of tons"""
-    quantity = row["poids"]
-    if quantity > (int(getenv("SEUIL_DIVISION_QUANTITE")) or 1000):
-        quantity = quantity / 1000
-    return quantity
-
-
 df_bsdd = get_bsdd_data()
+emis = df_bsdd.query('origine == "émis"')
+recus = df_bsdd.query('origine == "reçus"')
+
+df_bsdd_grouped_nb_mois = emis[['id', 'mois']].groupby(by=['mois'], as_index=False).count()
+df_bsdd_grouped_nb_mois['mois'] = [dt.strftime(date, "%b/%y") for date in df_bsdd_grouped_nb_mois['mois']]
+
+
 df_bsdd["poids"] = df_bsdd.apply(
-    normalize_quantity_received, axis=1
+    app.utils.normalize_quantity_received, axis=1
 )
 
-bsdd_grouped_nb_mois = get_bsdd_data()[['id', 'origine', 'mois']].groupby(by=['origine', 'mois'],
-                                                                          as_index=False).count()
-bsdd_grouped_nb_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_nb_mois['mois']]
-
+bsdd_grouped_poids_mois = get_bsdd_data()[['poids', 'origine', 'mois']].groupby(by=['origine', 'mois'],
+                                                                                as_index=False).sum()
+bsdd_grouped_poids_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_poids_mois['mois']]
+bsdd_grouped_poids_mois['poids'] = bsdd_grouped_poids_mois['poids'].apply(round)

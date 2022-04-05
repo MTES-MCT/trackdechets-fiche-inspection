@@ -70,6 +70,8 @@ Copied and renamed from DSFR core CSS */
   font-family: 'Marianne-Bold', sans-serif;
 }
 
+
+
 /* fr-callout customization */
 
 #layout-container .fr-callout {
@@ -102,6 +104,19 @@ Copied and renamed from DSFR core CSS */
 
 .callout-number .plot-container {
     background-color: var(--background-contrast-grey);
+}
+
+/*
+Tweaks for individual graphs
+*/
+
+#mois_quantités .legendtitletext {
+    display:none
+}
+
+.gtitle {
+    font: 22px "Marianne-Bold";
+    color: black;
 }
 
 

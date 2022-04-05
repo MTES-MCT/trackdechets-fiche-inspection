@@ -2,36 +2,13 @@ import datetime
 
 import pandas as pd
 from dash import html, dcc
-import plotly.io as pio
-import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 
 from app.app import dash_app, extra_config
 from app.time_config import time_delta_m, today
 import app.data
 import app.figures
-
-# Override the 'none' template
-pio.templates["gouv"] = go.layout.Template(
-    layout=dict(
-        font=dict(family="Marianne"),
-        title=dict(
-            x=0.01
-        ),
-        paper_bgcolor='rgb(238, 238, 238)',
-        colorway=['#2F4077', '#a94645', '#8D533E', '#417DC4'],
-        yaxis=dict(
-            tickformat=',0f',
-            separatethousands=True,
-        )
-    ),
-)
-
-pio.templates.default = "none+gouv"
-
-
-def format_number(input_number) -> str:
-    return "{:,.0f}".format(input_number).replace(",", " ")
+import app.utils
 
 
 def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):
@@ -50,7 +27,7 @@ def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):
 
     col = dbc.Col(
         html.Div([
-            html.P(format_number(number), className=number_class) if number else None,
+            html.P(app.utils.format_number_str(number), className=number_class) if number else None,
             dcc.Markdown(text, className=text_class)
         ],
             className='fr-callout'),
@@ -100,13 +77,10 @@ etab = df_etablissement.iloc[0]
 
 df_bsdd: pd.DataFrame = app.data.get_bsdd_data()
 
-emis = df_bsdd.query('origine == "émis"')
-emis_nb = emis.size
-emis_poids = emis['poids'].sum()
+emis_nb = app.data.emis.size
+emis_poids = app.data.emis['poids'].sum()
 
-recus = df_bsdd.query('origine == "recus"')
-recus_poids = recus['poids'].sum()
-
+recus_poids = app.data.recus['poids'].sum()
 
 dash_app.layout = html.Main(
     children=[
@@ -155,15 +129,19 @@ dash_app.layout = html.Main(
                     dbc.Col([
                         html.H4('BSD dangereux sur la période'),
                         html.P([
-                            'Poids émis : ' + format_number(emis_poids) + ' t',
+                            'Poids émis : ' + app.utils.format_number_str(emis_poids) + ' t',
                             html.Br(),
-                            'Poids reçu : ' + format_number(recus_poids) + ' t'])
+                            'Poids reçu : ' + app.utils.format_number_str(recus_poids) + ' t'])
                     ], width=12, lg=6),
+                ]),
+                dbc.Row([
+                    dbc.Col(
+                        [
+                            dcc.Graph(id='mois_emis', figure=app.figures.bsdd_emis_mois, config=extra_config)
+                        ], width=12, lg=6
+                    )
                 ])
             ],
         )
     ]
 )
-
-
-
