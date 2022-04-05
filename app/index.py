@@ -68,7 +68,6 @@ def add_figure(fig, fig_id: str) -> dbc.Row:
 #
 
 df_etablissement: pd.DataFrame = app.data.get_company_data()
-print(df_etablissement)
 etab = df_etablissement.iloc[0]
 
 #
@@ -125,7 +124,7 @@ dash_app.layout = html.Main(
                 ]),
                 dbc.Row([
                     dbc.Col([
-                        dcc.Graph(id='mois_quantités', figure=app.figures.dechets_recus_emis_mois, config=extra_config)
+                        dcc.Graph(id='mois_quantités', figure=app.figures.dechets_recus_emis_poids_mois, config=extra_config)
                     ], width=12, lg=6),
                     dbc.Col([
                         html.H4('BSD dangereux sur la période'),
@@ -147,7 +146,7 @@ dash_app.layout = html.Main(
                 dbc.Row([
                     dbc.Col(
                         [
-                            dcc.Graph(id='mois_emis', figure=app.figures.bsdd_emis_mois, config=extra_config)
+                            dcc.Graph(id='mois_emis', figure=app.figures.bsdd_emis_acceptation_mois, config=extra_config)
                         ], width=12, lg=6
                     )
                 ])

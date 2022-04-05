@@ -35,11 +35,12 @@ pio.templates["gouv"] = go.layout.Template(
 
 pio.templates.default = "none+gouv"
 
-bsdd_emis_mois = px.bar(
-    app.data.df_bsdd_grouped_nb_mois,
-    title="BSDD émis par mois",
+bsdd_emis_acceptation_mois = px.bar(
+    app.data.df_bsdd_acceptation_mois,
+    title="BSDD émis par mois et par acceptation",
     y="id",
     x="mois",
+    color="acceptation",
     text="id",
     labels={
         "mois": "",
@@ -48,7 +49,7 @@ bsdd_emis_mois = px.bar(
 )
 
 
-dechets_recus_emis_mois = px.line(
+dechets_recus_emis_poids_mois = px.line(
     app.data.bsdd_grouped_poids_mois,
     y="poids",
     x="mois",

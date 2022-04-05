@@ -51,7 +51,7 @@ def get_bsdd_data() -> pd.DataFrame:
     """
     df_bsdd_query = pd.read_sql_query(
         'SELECT "id", date_trunc(\'month\', "sentAt") as mois,'
-        '"quantityReceived" as poids, \'émis\' as origine '
+        '"quantityReceived" as poids, \'émis\' as origine, "wasteAcceptationStatus" as acceptation '
         'FROM "default$default"."Form" '
         f'WHERE "emitterCompanySiret" = \'{SIRET}\' '
         'AND "default$default"."Form"."sentAt" >= date_trunc(\'month\','
@@ -59,7 +59,7 @@ def get_bsdd_data() -> pd.DataFrame:
         'AND "default$default"."Form"."isDeleted" = FALSE '
         'UNION ALL '
         'SELECT "id", date_trunc(\'month\', "receivedAt") as mois,'
-        '"quantityReceived" as poids, \'reçus\' as origine '
+        '"quantityReceived" as poids, \'reçus\' as origine, "wasteAcceptationStatus" as acceptation '
         'FROM "default$default"."Form" '
         f'WHERE "recipientCompanySiret" = \'{SIRET}\' '
         'AND "default$default"."Form"."receivedAt" >= date_trunc(\'month\','
@@ -76,8 +76,18 @@ emis_nb = emis.size
 recus = df_bsdd.query('origine == "reçus"')
 recus_nb = recus.size
 
-df_bsdd_grouped_nb_mois = emis[['id', 'mois']].groupby(by=['mois'], as_index=False).count()
-df_bsdd_grouped_nb_mois['mois'] = [dt.strftime(date, "%b/%y") for date in df_bsdd_grouped_nb_mois['mois']]
+
+acceptation = {
+    'ACCEPTED': 'Accepté',
+    'REFUSED': 'Refusé',
+    'PARTIALLY_REFUSED': 'Part. refusé'
+}
+
+df_bsdd_acceptation_mois = emis[['id', 'mois', 'acceptation']].\
+    groupby(by=['mois', 'acceptation'], as_index=False).count()
+df_bsdd_acceptation_mois['mois'] = [dt.strftime(date, "%b/%y")
+                                    for date in df_bsdd_acceptation_mois['mois']]
+df_bsdd_acceptation_mois['acceptation'] = [acceptation[val] for val in df_bsdd_acceptation_mois['acceptation']]
 
 
 df_bsdd["poids"] = df_bsdd.apply(
