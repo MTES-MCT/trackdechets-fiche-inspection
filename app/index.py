@@ -1,8 +1,8 @@
 import datetime
-
 import pandas as pd
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+from os import getenv
 
 from app.app import dash_app, extra_config
 from app.time_config import time_delta_m, today
@@ -102,7 +102,8 @@ dash_app.layout = html.Main(
                                 html.P(etab['address']),
                                 html.P('Données pour la période du ' +
                                        datetime.datetime.strftime(app.time_config.date_n_days_ago, "%d %b %Y")
-                                       + ' à aujourd\'hui.', className='bold')
+                                       + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
+                                       className='bold')
                             ], width=6
                         ),
                         dbc.Col(
@@ -131,7 +132,16 @@ dash_app.layout = html.Main(
                         html.P([
                             'Poids émis : ' + app.utils.format_number_str(emis_poids) + ' t',
                             html.Br(),
-                            'Poids reçu : ' + app.utils.format_number_str(recus_poids) + ' t'])
+                            'Poids reçu : ' + app.utils.format_number_str(recus_poids) + ' t',
+                            html.Br(),
+                            'Stock théorique sur la période : ' + app.utils.format_number_str(recus_poids - emis_poids)
+                            + ' t']),
+
+                        html.P([
+                            'BSDD émis : ' + app.utils.format_number_str(app.data.emis_nb),
+                            html.Br(),
+                            'BSDD reçus : ' + app.utils.format_number_str(app.data.recus_nb),
+                        ])
                     ], width=12, lg=6),
                 ]),
                 dbc.Row([
