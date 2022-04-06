@@ -29,10 +29,20 @@ pio.templates["gouv"] = go.layout.Template(
             tickformat=',2',
             separatethousands=True,
             gridcolor='#ddd'
+        ),
+        xaxis=dict(
+            gridcolor="#ddd"
         )
     ),
 )
 
+# Customize the sequence and size of symbols used in line graphs
+symbol_sequence = ['circle-dot', 'square', 'hexagram', 'diamond', 'hourglass', 'bowtie', 'star']
+pio.templates["gouv"].data.scatter = [
+    go.Scatter(marker=dict(symbol=s, size=10)) for s in symbol_sequence
+]
+
+# Enable my template
 pio.templates.default = "none+gouv"
 
 bsdd_emis_acceptation_mois = px.bar(
@@ -46,7 +56,7 @@ bsdd_emis_acceptation_mois = px.bar(
         "mois": "",
         "id": "",
     },
-)
+).update_traces(textangle=0)
 
 
 dechets_recus_emis_poids_mois = px.line(

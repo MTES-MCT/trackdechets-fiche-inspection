@@ -72,9 +72,9 @@ def get_bsdd_data() -> pd.DataFrame:
 
 df_bsdd = get_bsdd_data()
 emis = df_bsdd.query('origine == "émis"')
-emis_nb = emis.size
+emis_nb = emis.index.size
 recus = df_bsdd.query('origine == "reçus"')
-recus_nb = recus.size
+recus_nb = recus.index.size
 
 
 acceptation = {
@@ -83,18 +83,19 @@ acceptation = {
     'PARTIALLY_REFUSED': 'Part. refusé'
 }
 
-df_bsdd_acceptation_mois = emis[['id', 'mois', 'acceptation']].\
-    groupby(by=['mois', 'acceptation'], as_index=False).count()
+df_bsdd_acceptation_mois: pd.DataFrame = emis[['id', 'mois', 'acceptation']].\
+    groupby(by=['mois', 'acceptation'], as_index=False, dropna=False).count()
 df_bsdd_acceptation_mois['mois'] = [dt.strftime(date, "%b/%y")
                                     for date in df_bsdd_acceptation_mois['mois']]
-df_bsdd_acceptation_mois['acceptation'] = [acceptation[val] for val in df_bsdd_acceptation_mois['acceptation']]
+df_bsdd_acceptation_mois['acceptation'] = [acceptation[val] if isinstance(val, str) else "n/a"
+                                           for val in df_bsdd_acceptation_mois['acceptation']]
 
 
 df_bsdd["poids"] = df_bsdd.apply(
     app.utils.normalize_quantity_received, axis=1
 )
 
-bsdd_grouped_poids_mois = get_bsdd_data()[['poids', 'origine', 'mois']].groupby(by=['origine', 'mois'],
+bsdd_grouped_poids_mois = get_bsdd_data()[['poids', 'origine', 'mois']].groupby(by=['mois', 'origine'],
                                                                                 as_index=False).sum()
 bsdd_grouped_poids_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_poids_mois['mois']]
 bsdd_grouped_poids_mois['poids'] = bsdd_grouped_poids_mois['poids'].apply(round)

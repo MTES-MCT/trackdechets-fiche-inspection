@@ -124,8 +124,17 @@ dash_app.layout = html.Main(
                 ]),
                 dbc.Row([
                     dbc.Col([
-                        dcc.Graph(id='mois_quantités', figure=app.figures.dechets_recus_emis_poids_mois, config=extra_config)
+                        dcc.Graph(id='mois_quantités', figure=app.figures.dechets_recus_emis_poids_mois,
+                                  config=extra_config)
                     ], width=12, lg=6),
+                    dbc.Col(
+                        [
+                            dcc.Graph(id='mois_emis', figure=app.figures.bsdd_emis_acceptation_mois,
+                                      config=extra_config)
+                        ], width=12, lg=6
+                    ),
+                ]),
+                dbc.Row([
                     dbc.Col([
                         html.H4('BSD dangereux sur la période'),
                         html.P([
@@ -142,13 +151,6 @@ dash_app.layout = html.Main(
                             'BSDD reçus : ' + app.utils.format_number_str(app.data.recus_nb),
                         ])
                     ], width=12, lg=6),
-                ]),
-                dbc.Row([
-                    dbc.Col(
-                        [
-                            dcc.Graph(id='mois_emis', figure=app.figures.bsdd_emis_acceptation_mois, config=extra_config)
-                        ], width=12, lg=6
-                    )
                 ])
             ],
         )

@@ -110,8 +110,12 @@ Copied and renamed from DSFR core CSS */
 Tweaks for individual graphs
 */
 
-#mois_quantités .legendtitletext {
+.legendtitletext {
     display:none
+}
+
+.textpoint, .bartext {
+    font-weight: bold;
 }
 
 .gtitle {
