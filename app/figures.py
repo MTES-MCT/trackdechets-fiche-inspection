@@ -24,6 +24,8 @@ pio.templates["gouv"] = go.layout.Template(
             orientation='h'
         ),
         paper_bgcolor='white',
+        margin=dict(l=30, r=20, t=60, b=20),
+        autosize=True,
         colorway=['#2F4077', '#a94645', '#8D533E', '#417DC4'],
         yaxis=dict(
             tickformat=',2',
@@ -58,7 +60,6 @@ bsdd_emis_acceptation_mois = px.bar(
     },
 ).update_traces(textangle=0)
 
-
 dechets_recus_emis_poids_mois = px.line(
     app.data.bsdd_grouped_poids_mois,
     y="poids",
@@ -70,6 +71,3 @@ dechets_recus_emis_poids_mois = px.line(
     markers=True,
     text="poids"
 ).update_traces(textposition="top center")
-
-
-

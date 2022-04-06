@@ -114,10 +114,6 @@ Tweaks for individual graphs
     display:none
 }
 
-.textpoint, .bartext {
-    font-weight: bold;
-}
-
 .gtitle {
     font: 22px "Marianne-Bold";
     color: black;
@@ -147,4 +143,10 @@ SPECIFIC to print
 */
 
 @media print {
+    @page {
+        margin: 5mm;
+    }
+    * {
+        width: 100%;
+    }
 }

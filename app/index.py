@@ -126,12 +126,12 @@ dash_app.layout = html.Main(
                     dbc.Col([
                         dcc.Graph(id='mois_quantités', figure=app.figures.dechets_recus_emis_poids_mois,
                                   config=extra_config)
-                    ], width=12, lg=6),
+                    ], width=6, lg=6),
                     dbc.Col(
                         [
                             dcc.Graph(id='mois_emis', figure=app.figures.bsdd_emis_acceptation_mois,
                                       config=extra_config)
-                        ], width=12, lg=6
+                        ], width=6, lg=6
                     ),
                 ]),
                 dbc.Row([
