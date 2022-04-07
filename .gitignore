@@ -1,0 +1,6 @@
+*.sh
+.env
+*.csv
+.idea
+cache
+__pycache__

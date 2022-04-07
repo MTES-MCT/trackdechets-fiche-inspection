@@ -1,0 +1,26 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+dash = "*"
+plotly = "*"
+pandas = "*"
+sqlalchemy = ">=1.4.0"
+psycopg2-binary = "*"
+dash_bootstrap_components = "*"
+flask_caching = "*"
+python-dateutil = "*"
+gunicorn = "*"
+python-dotenv = "*"
+datetime = "*"
+
+[dev-packages]
+jupyter = "*"
+
+[requires]
+python_version = "3.9"
+
+[pipenv]
+allow_prereleases = true
