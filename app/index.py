@@ -151,6 +151,10 @@ dash_app.layout = html.Main(
                             'BSDD reçus : ' + app.utils.format_number_str(app.data.recus_nb),
                         ])
                     ], width=12, lg=6),
+                    dbc.Col([
+                        dcc.Graph(id='poids_departement_recus', figure=app.figures.dechets_recus_poids_departement,
+                                  config=extra_config)
+                    ], width=6, lg=6)
                 ])
             ],
         )

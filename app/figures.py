@@ -24,7 +24,7 @@ pio.templates["gouv"] = go.layout.Template(
             orientation='h'
         ),
         paper_bgcolor='white',
-        margin=dict(l=30, r=20, t=60, b=20),
+        margin=dict(l=40, r=20, t=60, b=40),
         autosize=True,
         colorway=['#2F4077', '#a94645', '#8D533E', '#417DC4'],
         yaxis=dict(
@@ -71,3 +71,16 @@ dechets_recus_emis_poids_mois = px.line(
     markers=True,
     text="poids"
 ).update_traces(textposition="top center")
+
+dechets_recus_poids_departement = px.bar(
+    app.data.df_bsdd_origine_poids,
+    title="Origine des déchets dangereux reçus (top 10)",
+    y="departement_origine",
+    x="poids",
+    text="LIBELLE",
+    labels={
+        "departement_origine": "Département d'origine",
+        "poids": "Poids (tonnes)",
+    },
+    # So that departements are not treated as numbers
+).update_yaxes(autotypenumbers='strict')
