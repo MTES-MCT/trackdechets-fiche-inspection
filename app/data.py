@@ -46,7 +46,48 @@ def get_company_data() -> pd.DataFrame:
 
         con=engine,
     )
+
     return df_company_query
+
+
+def get_agreement_data() -> pd.DataFrame:
+    """
+    Queries the configured database for data about a company's agreements.
+    :return:
+    """
+    df_agreement_query = pd.read_sql_query(
+        'SELECT \'Agrément démolisseur VHU n°\' as "nom", agrement."agrementNumber" as "number", agrement."department",'
+        'CAST(NULL AS timestamp) as "validityLimit" from "default$default"."VhuAgrement" agrement '
+        'RIGHT JOIN "default$default"."Company" company '
+        'ON agrement."id" = company."vhuAgrementDemolisseurId" '
+        f'WHERE company."siret" = \'{SIRET}\' '
+        'union '
+        'SELECT \'Agrément broyeur VHU n°\' as "nom", agrement."agrementNumber" as "number", agrement."department",'
+        ' CAST(NULL AS timestamp) as "validityLimit" from "default$default"."VhuAgrement" agrement '
+        'RIGHT JOIN "default$default"."Company" company '
+        'ON agrement."id" = company."vhuAgrementBroyeurId" '
+        f'WHERE company."siret" = \'{SIRET}\' '
+        'union '
+        'SELECT \'Récepissé transporteur n°\' as "nom", agrement."receiptNumber" as "number", agrement."department",'
+        ' agrement."validityLimit" as "validityLimit" from "default$default"."TransporterReceipt" agrement '
+        'RIGHT JOIN "default$default"."Company" company '
+        'ON agrement."id" = company."transporterReceiptId"'
+        f'WHERE company."siret" = \'{SIRET}\' '
+        'union '
+        'SELECT \'Récepissé négociant n°\' as "nom", agrement."receiptNumber" as "number", agrement."department",'
+        ' agrement."validityLimit" as "validityLimit" from "default$default"."TraderReceipt" agrement '
+        'RIGHT JOIN "default$default"."Company" company '
+        'ON agrement."id" = company."traderReceiptId" '
+        f'WHERE company."siret" = \'{SIRET}\' '
+        'union '
+        'SELECT \'Récepissé courtier n°\' as "nom", agrement."receiptNumber" as "number", agrement."department",'
+        ' agrement."validityLimit" as "validityLimit" from "default$default"."BrokerReceipt" agrement '
+        'RIGHT JOIN "default$default"."Company" company '
+        'ON agrement."id" = company."brokerReceiptId" '
+        f'WHERE company."siret" = \'{SIRET}\'',
+        con=engine
+    )
+    return df_agreement_query
 
 
 def get_bsdd_data() -> pd.DataFrame:
@@ -75,6 +116,18 @@ def get_bsdd_data() -> pd.DataFrame:
         con=engine,
     )
     return df_bsdd_query
+
+
+# ******************************************************
+# Récépissés et agréments
+# ******************************************************
+
+df_agreements = get_agreement_data()
+print(df_agreements)
+
+# ******************************************************
+# BSDD
+# ******************************************************
 
 
 df_bsdd = get_bsdd_data()

@@ -11,6 +11,21 @@ import app.figures
 import app.utils
 
 
+def make_agreement_list() -> list[html.Li]:
+    df = app.data.df_agreements
+    agreement_list = []
+
+    for i, nom, number, department, validityLimit in df.itertuples():
+        if number is not None:
+            validity = ", valide jusqu'au " + datetime.datetime.strftime(validityLimit, '%d %b %Y')\
+                if validityLimit is not None else ''
+            agreement = html.Li(nom + number + validity)
+            agreement_list.append(agreement)
+    if len(agreement_list) == 0:
+        agreement_list = [html.Li('néant')]
+    return agreement_list
+
+
 def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):
     text_class = 'number-text' if number else 'fr-callout__text'
     number_class = 'callout-number small-number'
@@ -100,7 +115,10 @@ dash_app.layout = html.Main(
                                         "S3IC/GUN : " + etab['codeS3ic']]),
                                 html.P(etab['address']),
                                 html.P('Inscrit sur Trackdéchets depuis le '
-                                       f'{datetime.datetime.strftime(etab["createdAt"], "%d %b %Y à %H:%M")}'),
+                                       f'{datetime.datetime.strftime(etab["createdAt"], "%d %b %Y")}'),
+                                html.P("L'entreprise a déclaré sur Trackdéchets disposer des agréments/récepissés "
+                                       "suivants :"),
+                                html.Ul(make_agreement_list()),
                                 html.P('Données pour la période du ' +
                                        datetime.datetime.strftime(app.time_config.date_n_days_ago, "%d %b %Y")
                                        + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
