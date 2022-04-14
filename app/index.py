@@ -19,7 +19,7 @@ def make_agreement_list() -> list[html.Li]:
         if number is not None:
             validity = ", valide jusqu'au " + datetime.datetime.strftime(validityLimit, '%d %b %Y')\
                 if validityLimit is not None else ''
-            agreement = html.Li(nom + number + validity)
+            agreement = html.Li(nom + number + f' (préf. {department})' + validity)
             agreement_list.append(agreement)
     if len(agreement_list) == 0:
         agreement_list = [html.Li('néant')]
