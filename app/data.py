@@ -35,7 +35,8 @@ def get_company_data() -> pd.DataFrame:
     :return: dataframe of companies for a given period of time, with their creation week
     """
     df_company_query = pd.read_sql_query(
-        'SELECT "Company"."siret", "Company"."name", "Company"."address",' '"Company"."contactPhone",'
+        'SELECT "Company"."siret", "Company"."name", "Company"."createdAt", "Company"."address",'
+        '"Company"."contactPhone",'
         '"Company"."contactEmail", "Company"."website", installation."codeS3ic" '
         'FROM "default$default"."Company" '
         'LEFT JOIN'

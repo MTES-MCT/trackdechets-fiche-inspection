@@ -99,6 +99,8 @@ dash_app.layout = html.Main(
                                         html.Br(),
                                         "S3IC/GUN : " + etab['codeS3ic']]),
                                 html.P(etab['address']),
+                                html.P('Inscrit sur Trackdéchets depuis le '
+                                       f'{datetime.datetime.strftime(etab["createdAt"], "%d %b %Y à %H:%M")}'),
                                 html.P('Données pour la période du ' +
                                        datetime.datetime.strftime(app.time_config.date_n_days_ago, "%d %b %Y")
                                        + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
