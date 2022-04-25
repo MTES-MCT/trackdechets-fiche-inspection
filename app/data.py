@@ -23,10 +23,10 @@ locale.setlocale(locale.LC_ALL, 'fr_FR')
 # SECHE ALLIANCE (pas dans ICPE)
 # SIRET = '55685027900051'
 # SARP
-SIRET = '30377298200029'
+# SIRET = '30377298200029'
 
 # Lpg export recyclage
-# SIRET = '90008481500019'
+SIRET = '90008481500019'
 
 
 def get_company_data() -> pd.DataFrame:
@@ -158,43 +158,30 @@ df_bsdd_acceptation_mois['acceptation'] = [acceptation[val] if isinstance(val, s
 # BSDD / origine / poids / mois
 #
 
-df_bsdd["poids"] = df_bsdd.apply(
-    app.utils.normalize_quantity_received, axis=1
-)
+if df_bsdd.index.size > 0:
+    df_bsdd["poids"] = df_bsdd.apply(
+        app.utils.normalize_quantity_received, axis=1
+    )
 
-bsdd_grouped_poids_mois = get_bsdd_data()[['poids', 'origine', 'mois']].groupby(by=['mois', 'origine'],
-                                                                                as_index=False).sum()
-bsdd_grouped_poids_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_poids_mois['mois']]
-bsdd_grouped_poids_mois['poids'] = bsdd_grouped_poids_mois['poids'].apply(round)
+    bsdd_grouped_poids_mois = get_bsdd_data()[['poids', 'origine', 'mois']].groupby(by=['mois', 'origine'],
+                                                                                    as_index=False).sum()
+    bsdd_grouped_poids_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_poids_mois['mois']]
+    bsdd_grouped_poids_mois['poids'] = bsdd_grouped_poids_mois['poids'].apply(round)
 
 #
 # BSDD / reçus / département
 #
 
+    df_bsdd_origine_poids: pd.DataFrame = recus[['emitterCompanyAddress', 'poids']].copy()
+    df_bsdd_origine_poids['departement_origine'] = df_bsdd_origine_poids['emitterCompanyAddress'].str.\
+                                                       extract(r"(\d{2})\d{3}")
+    df_bsdd_origine_poids = df_bsdd_origine_poids[['departement_origine', 'poids']].\
+        groupby(by='departement_origine', as_index=False).sum()
+    df_bsdd_origine_poids['poids'] = df_bsdd_origine_poids['poids'].apply(round)
+    df_bsdd_origine_poids.sort_values(by='poids', ascending=True, inplace=True)
+    df_bsdd_origine_poids = df_bsdd_origine_poids.tail(10)
+    departements = pd.read_csv('app/assets/departement.csv', index_col='DEP')
+    df_bsdd_origine_poids = df_bsdd_origine_poids.merge(departements, left_on='departement_origine', right_index=True)
+    df_bsdd_origine_poids['LIBELLE'] = df_bsdd_origine_poids['LIBELLE'] + ' (' \
+                                       + df_bsdd_origine_poids['poids'].astype(str) + ' t)'
 
-def set_departement(row):
-    worksite_address = row.emitterWorkSitePostalCode
-    company_address = row.emitterCompanyAddress
-
-    result = re.findall(r'(\d{2})\d{3}', worksite_address)
-
-    if len(result) == 2:
-        return result
-    else:
-        return re.findall(r'(\d{2})\d{3}', company_address)
-
-
-df_bsdd_origine_poids: pd.DataFrame = recus[['emitterCompanyAddress', 'poids']].copy()
-df_bsdd_origine_poids['departement_origine'] = df_bsdd_origine_poids['emitterCompanyAddress'].str.\
-                                                   extract(r"(\d{2})\d{3}")
-df_bsdd_origine_poids = df_bsdd_origine_poids[['departement_origine', 'poids']].\
-    groupby(by='departement_origine', as_index=False).sum()
-df_bsdd_origine_poids['poids'] = df_bsdd_origine_poids['poids'].apply(round)
-df_bsdd_origine_poids.sort_values(by='poids', ascending=True, inplace=True)
-df_bsdd_origine_poids = df_bsdd_origine_poids.tail(10)
-departements = pd.read_csv('app/assets/departement.csv', index_col='DEP')
-df_bsdd_origine_poids = df_bsdd_origine_poids.merge(departements, left_on='departement_origine', right_index=True)
-df_bsdd_origine_poids['LIBELLE'] = df_bsdd_origine_poids['LIBELLE'] + ' (' \
-                                   + df_bsdd_origine_poids['poids'].astype(str) + ' t)'
-
-print()
