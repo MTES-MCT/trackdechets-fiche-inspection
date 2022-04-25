@@ -136,7 +136,6 @@ emis_nb = emis.index.size
 recus = df_bsdd.query('origine == "reçus"')
 recus_nb = recus.index.size
 
-
 #
 # BSDD / acceptation / mois
 #
@@ -148,7 +147,7 @@ acceptation = {
 }
 
 df_bsdd_acceptation_mois: pd.DataFrame = emis[['id', 'mois', 'acceptation']].copy()
-df_bsdd_acceptation_mois = df_bsdd_acceptation_mois.groupby(by=['mois', 'acceptation'], as_index=False, dropna=False).\
+df_bsdd_acceptation_mois = df_bsdd_acceptation_mois.groupby(by=['mois', 'acceptation'], as_index=False, dropna=False). \
     count()
 df_bsdd_acceptation_mois['mois'] = [dt.strftime(date, "%b/%y")
                                     for date in df_bsdd_acceptation_mois['mois']]
@@ -168,14 +167,14 @@ if df_bsdd.index.size > 0:
     bsdd_grouped_poids_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_poids_mois['mois']]
     bsdd_grouped_poids_mois['poids'] = bsdd_grouped_poids_mois['poids'].apply(round)
 
-#
-# BSDD / reçus / département
-#
+    #
+    # BSDD / reçus / département
+    #
 
     df_bsdd_origine_poids: pd.DataFrame = recus[['emitterCompanyAddress', 'poids']].copy()
-    df_bsdd_origine_poids['departement_origine'] = df_bsdd_origine_poids['emitterCompanyAddress'].str.\
-                                                       extract(r"(\d{2})\d{3}")
-    df_bsdd_origine_poids = df_bsdd_origine_poids[['departement_origine', 'poids']].\
+    df_bsdd_origine_poids['departement_origine'] = df_bsdd_origine_poids['emitterCompanyAddress'].str. \
+        extract(r"(\d{2})\d{3}")
+    df_bsdd_origine_poids = df_bsdd_origine_poids[['departement_origine', 'poids']]. \
         groupby(by='departement_origine', as_index=False).sum()
     df_bsdd_origine_poids['poids'] = df_bsdd_origine_poids['poids'].apply(round)
     df_bsdd_origine_poids.sort_values(by='poids', ascending=True, inplace=True)
@@ -184,4 +183,3 @@ if df_bsdd.index.size > 0:
     df_bsdd_origine_poids = df_bsdd_origine_poids.merge(departements, left_on='departement_origine', right_index=True)
     df_bsdd_origine_poids['LIBELLE'] = df_bsdd_origine_poids['LIBELLE'] + ' (' \
                                        + df_bsdd_origine_poids['poids'].astype(str) + ' t)'
-
