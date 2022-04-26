@@ -23,10 +23,10 @@ locale.setlocale(locale.LC_ALL, 'fr_FR')
 # SECHE ALLIANCE (pas dans ICPE)
 # SIRET = '55685027900051'
 # SARP
-# SIRET = '30377298200029'
+SIRET = '30377298200029'
 
 # Lpg export recyclage
-SIRET = '90008481500019'
+# SIRET = '90008481500019'
 
 
 def get_company_data() -> pd.DataFrame:

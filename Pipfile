@@ -15,6 +15,7 @@ python-dateutil = "*"
 gunicorn = "*"
 python-dotenv = "*"
 datetime = "*"
+dash-auth = "*"
 
 [dev-packages]
 jupyter = "*"
