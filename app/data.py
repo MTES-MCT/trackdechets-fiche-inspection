@@ -219,9 +219,12 @@ def get_bsdd_summary(json_data: str):
 # ******************************************************
 
 @dash_app.callback(
-    Output('company_details', 'children'),
-    Input('siret', 'value'))
-def get_company_data(siret: str) -> Div:
+    Input('siret', 'value'),
+    output=dict(
+        company_details=Output('company_details', 'children'),
+        company_name=Output('company_name', 'children')),
+    )
+def get_company_data(siret: str) -> dict:
     df_company_query = pd.read_sql_query(
         'SELECT "Company"."siret", "Company"."name", "Company"."createdAt", "Company"."address",'
         '"Company"."contactPhone",'
@@ -283,21 +286,24 @@ def get_company_data(siret: str) -> Div:
 
     etab = df_company_query.iloc[0]
 
-    return html.Div([
-        html.P(f'le {dt.strftime(today, "%d %b %Y à %H:%M")}'),
-        html.P(["SIRET : " + etab['siret'],
-                html.Br(),
-                "S3IC/GUN : " + (etab['codeS3ic'] or "inconnu")]),
-        html.P(etab['address']),
-        html.P('Inscrit sur Trackdéchets depuis le '
-               f'{dt.strftime(etab["createdAt"], "%d %b %Y")}'),
-        html.P(
-            "L'entreprise a déclaré sur Trackdéchets disposer des "
-            "agréments/récepissés "
-            "suivants :"),
-        html.Ul(make_agreement_list()),
-        html.P('Données pour la période du ' +
-               dt.strftime(date_n_days_ago, "%d %b %Y")
-               + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
-               className='bold')
-    ])
+    return {
+        'company_details': html.Div([
+            html.P(f'le {dt.strftime(today, "%d %b %Y à %H:%M")}'),
+            html.P(["SIRET : " + etab['siret'],
+                    html.Br(),
+                    "S3IC/GUN : " + (etab['codeS3ic'] or "inconnu")]),
+            html.P(etab['address']),
+            html.P('Inscrit sur Trackdéchets depuis le '
+                   f'{dt.strftime(etab["createdAt"], "%d %b %Y")}'),
+            html.P(
+                "L'entreprise a déclaré sur Trackdéchets disposer des "
+                "agréments/récepissés "
+                "suivants :"),
+            html.Ul(make_agreement_list()),
+            html.P('Données pour la période du ' +
+                   dt.strftime(date_n_days_ago, "%d %b %Y")
+                   + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
+                   className='bold')
+        ]),
+        'company_name': etab['name']
+    }

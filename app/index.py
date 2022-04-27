@@ -120,7 +120,7 @@ dash_app.layout = html.Main(
                              dcc.Input("30377298200029", id='siret', type="text", placeholder="30377298200029")
                          ]),
                          dbc.Row([
-                             # html.H1(etab['name']),
+                             html.H1(id='company_name'),
                          ]),
                          dbc.Row(
                              [
