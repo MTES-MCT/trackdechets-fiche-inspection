@@ -8,21 +8,7 @@ from app.app import dash_app, extra_config
 from app.time_config import time_delta_m, today
 import app.data
 import app.utils
-
-
-def make_agreement_list() -> list[html.Li]:
-    df = app.data.df_agreements
-    agreement_list = []
-
-    for i, nom, number, department, validityLimit in df.itertuples():
-        if number is not None:
-            validity = ", valide jusqu'au " + datetime.datetime.strftime(validityLimit, '%d %b %Y') \
-                if validityLimit is not None else ''
-            agreement = html.Li(nom + number + f' (préf. {department})' + validity)
-            agreement_list.append(agreement)
-    if len(agreement_list) == 0:
-        agreement_list = [html.Li('néant')]
-    return agreement_list
+import app.figures
 
 
 def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):
@@ -76,74 +62,53 @@ def add_figure(fig, fig_id: str) -> dbc.Row:
     )
     return row
 
+    # graph_rows = []
+    # if app.data.df_bsdd.index.size > 0:
 
-#
-# Établissement
-#
 
-df_etablissement: pd.DataFrame = app.data.get_company_data()
-etab = df_etablissement.iloc[0]
+graph_rows = [
+    dbc.Row([
+        dbc.Col([
+            dcc.Graph(id='mois_quantités', config=extra_config)
+        ], width=6, lg=6),
+        dbc.Col(
+            [
+                dcc.Graph(id='mois_emis', config=extra_config)
+            ], width=6, lg=6
+        ),
+    ]),
+    dbc.Row([
+        dbc.Col([
+            html.H4('BSD dangereux sur la période'),
+            html.P([
+                'Poids émis : ', html.Span(id='poids_emis'), ' t',
+                html.Br(),
+                'Poids reçu : ', html.Span(id='poids_recu'), ' t',
+                html.Br(),
+                'Stock théorique sur la période : ', html.Span(id='stock_theorique'), ' t']),
 
-#
-# BSDDs
-#
+            html.P([
+                'BSDD émis : ', html.Span(id='nb_bsdd_emis'),
+                html.Br(),
+                'BSDD reçus : ', html.Span(id='nb_bsdd_recus'),
+            ])
+        ], width=12, lg=6),
+        dbc.Col([
+            dcc.Graph(id='poids_departement_recus', config=extra_config)
+        ], width=6, lg=6)
+    ])
+]
 
-df_bsdd: pd.DataFrame = app.data.get_bsdd_data()
-
-emis_nb = app.data.emis.size
-emis_poids = app.data.emis['poids'].sum()
-
-recus_poids = app.data.recus['poids'].sum()
-
-graph_rows = []
-if app.data.df_bsdd.index.size > 0:
-    import app.figures
-
-    graph_rows = [
-        dbc.Row([
-            dbc.Col([
-                dcc.Graph(id='mois_quantités', figure=app.figures.dechets_recus_emis_poids_mois,
-                          config=extra_config)
-            ], width=6, lg=6),
-            dbc.Col(
-                [
-                    dcc.Graph(id='mois_emis', figure=app.figures.bsdd_emis_acceptation_mois,
-                              config=extra_config)
-                ], width=6, lg=6
-            ),
-        ]),
-        dbc.Row([
-            dbc.Col([
-                html.H4('BSD dangereux sur la période'),
-                html.P([
-                    'Poids émis : ' + app.utils.format_number_str(emis_poids) + ' t',
-                    html.Br(),
-                    'Poids reçu : ' + app.utils.format_number_str(recus_poids) + ' t',
-                    html.Br(),
-                    'Stock théorique sur la période : ' + app.utils.format_number_str(recus_poids - emis_poids)
-                    + ' t']),
-
-                html.P([
-                    'BSDD émis : ' + app.utils.format_number_str(app.data.emis_nb),
-                    html.Br(),
-                    'BSDD reçus : ' + app.utils.format_number_str(app.data.recus_nb),
-                ])
-            ], width=12, lg=6),
-            dbc.Col([
-                dcc.Graph(id='poids_departement_recus', figure=app.figures.dechets_recus_poids_departement,
-                          config=extra_config)
-            ], width=6, lg=6)
-        ])
-    ]
-else:
-    graph_rows = [
-        dbc.Row([
-            dbc.Col([
-                "Pas de bordereaux entrés dans Trackdéchets pour cet établissement sur la période, ni comme émetteur, "
-                "ni comme destinataire."
-            ], width={'size': 4, 'offset': 4})
-        ])
-    ]
+# else:
+#     graph_rows = [
+#         dbc.Row([
+#             dbc.Col([
+#                 "Pas de bordereaux entrés dans Trackdéchets pour cet établissement sur la période, "
+#                 "ni comme émetteur, "
+#                 "ni comme destinataire."
+#             ], width={'size': 4, 'offset': 4})
+#         ])
+#     ]
 
 dash_app.layout = html.Main(
     children=[
@@ -152,29 +117,15 @@ dash_app.layout = html.Main(
             id='layout-container',
             children=[
                          dbc.Row([
-                             html.H1(etab['name']),
+                             dcc.Input("30377298200029", id='siret', type="text", placeholder="30377298200029")
+                         ]),
+                         dbc.Row([
+                             # html.H1(etab['name']),
                          ]),
                          dbc.Row(
                              [
                                  dbc.Col(
-                                     [
-                                         html.P(f'le {datetime.datetime.strftime(today, "%d %b %Y à %H:%M")}'),
-                                         html.P(["SIRET : " + etab['siret'],
-                                                 html.Br(),
-                                                 "S3IC/GUN : " + (etab['codeS3ic'] or "inconnu")]),
-                                         html.P(etab['address']),
-                                         html.P('Inscrit sur Trackdéchets depuis le '
-                                                f'{datetime.datetime.strftime(etab["createdAt"], "%d %b %Y")}'),
-                                         html.P(
-                                             "L'entreprise a déclaré sur Trackdéchets disposer des "
-                                             "agréments/récepissés "
-                                             "suivants :"),
-                                         html.Ul(make_agreement_list()),
-                                         html.P('Données pour la période du ' +
-                                                datetime.datetime.strftime(app.time_config.date_n_days_ago, "%d %b %Y")
-                                                + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
-                                                className='bold')
-                                     ], width=6
+                                     width=6, id='company_details'
                                  ),
                                  dbc.Col(
                                      [
@@ -198,6 +149,7 @@ dash_app.layout = html.Main(
                              html.H2('Données des bordereaux de suivi dématérialisés issues de Trackdéchets')
                          ]),
                      ] + graph_rows
-        )
+        ),
+        dcc.Store(id='query-result')
     ]
 )

@@ -1,23 +1,5 @@
 @charset "UTF-8"; /*
- ==================================
- Related to the FR design system
- ==================================
- */
 
-/* Force blue-france color on headings */
-#layout-container h1, #layout-container h2, #layout-container h3 {
-    color: rgb(0, 0, 146);
-}
-
-/* Can't add bold style to Plotly figure title, but can specify font family (https://plotly.com/python/reference/layout/).
-Copied and renamed from DSFR core CSS */
-@font-face {
-  font-family: 'Marianne-Bold';
-  src: url("dsfr_dist/fonts/Marianne-Bold.woff2") format("woff2"), url("dsfr_dist/fonts/Marianne-Bold.woff") format("woff");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
 
 /*!
  * DSFR v1.4.0 | SPDX-License-Identifier: MIT | License-Filename: LICENSE.md | restricted use (see terms and conditions)

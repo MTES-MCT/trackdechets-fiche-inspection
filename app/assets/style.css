@@ -149,4 +149,8 @@ SPECIFIC to print
     * {
         width: 100%;
     }
+
+    #siret {
+        display: none;
+    }
 }
