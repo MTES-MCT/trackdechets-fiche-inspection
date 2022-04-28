@@ -251,7 +251,7 @@ def get_company_data(siret: str) -> dict:
     # The entered SIRET is not 14 char long
     if len(siret) != 14:
         return {
-            'company_details': html.Col(
+            'company_details': dbc.Col(
                 html.Div([html.Strong("Le numéro SIRET doit comporter 14 chiffres")])
             ),
             'company_name': ""
@@ -273,7 +273,7 @@ def get_company_data(siret: str) -> dict:
     # Dataframe has no record, établissement is not in Trackdéchets
     if df_company_query.index.size == 0:
         return {
-            'company_details': html.Col([]),
+            'company_details': dbc.Col([]),
             'company_name': "Établissement non inscrit dans Trackdéchets"
         }
 
