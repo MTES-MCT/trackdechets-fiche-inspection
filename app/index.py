@@ -74,7 +74,9 @@ dash_app.layout = html.Main(
             children=[
                 dbc.Row([
                     dbc.Col(
-                        dcc.Input("90008481500019", id='siret', type="text"),
+                        [
+                            html.Label("SIRET", htmlFor='siret'),
+                            dcc.Input("90008481500019", id='siret', type="text")],
                         width=6
                     ),
                     dbc.Col([
