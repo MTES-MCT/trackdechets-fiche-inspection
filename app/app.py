@@ -3,8 +3,13 @@ Dash dash_app configuration
 """
 import dash_bootstrap_components as dbc
 from os import getenv
-import dash_auth
+import warnings
 import dash
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=UserWarning)
+    # https://github.com/plotly/dash-auth/issues/121
+    import dash_auth
 
 external_scripts = ["https://cdn.plot.ly/plotly-locale-fr-latest.js"]
 extra_config = {"locale": "fr"}

@@ -1,11 +1,7 @@
-import datetime
-import pandas as pd
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-from os import getenv
 
 from app.app import dash_app, extra_config
-from app.time_config import time_delta_m, today
 import app.data
 import app.utils
 import app.figures
