@@ -97,30 +97,7 @@ dash_app.layout = html.Main(
                 dbc.Row([
                     html.H1(id='company_name'),
                 ]),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            # Détails de l'établissement
-                            width=6, id='company_details'
-                        ),
-                        dbc.Col(
-                            [
-                                html.P(
-                                    'Les données pour cet établissement peuvent être consultées sur '
-                                    'Trackdéchets.'),
-                                html.P(
-                                    'Elles comprennent les bordereaux de suivi de déchets (BSD) '
-                                    'dématérialisés,'
-                                    ' mais ne comprennent pas :'),
-                                html.Ul([
-                                    html.Li('les éventuels BSD papiers non dématérialisés'),
-                                    html.Li('les bons d\'enlèvement (huiles usagées, pneus)'),
-                                    html.Li('les annexes 1 (petites quantités)')
-                                ])
-                            ], width=6
-                        )
-                    ]
-                ),
+                dbc.Row(id='company_details'),
                 dbc.Row([
                     html.H2('Données des bordereaux de suivi dématérialisés issues de Trackdéchets')
                 ]),

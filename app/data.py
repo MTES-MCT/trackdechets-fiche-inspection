@@ -251,7 +251,9 @@ def get_company_data(siret: str) -> dict:
     # The entered SIRET is not 14 char long
     if len(siret) != 14:
         return {
-            'company_details': html.Div([html.Strong("Le numéro SIRET doit comporter 14 chiffres")]),
+            'company_details': html.Col(
+                html.Div([html.Strong("Le numéro SIRET doit comporter 14 chiffres")])
+            ),
             'company_name': ""
         }
 
@@ -271,7 +273,7 @@ def get_company_data(siret: str) -> dict:
     # Dataframe has no record, établissement is not in Trackdéchets
     if df_company_query.index.size == 0:
         return {
-            'company_details': html.Div([]),
+            'company_details': html.Col([]),
             'company_name': "Établissement non inscrit dans Trackdéchets"
         }
 
@@ -324,25 +326,45 @@ def get_company_data(siret: str) -> dict:
         'ON agrement."id" = company."brokerReceiptId" '
         f'WHERE company."siret" = \'{siret}\'',
         con=engine)
+
     # Dataframe has records, return information
     return {
-        'company_details': html.Div([
-            html.P(f'le {dt.strftime(today, "%d %b %Y à %H:%M")}'),
-            html.P(["SIRET : " + etab['siret'],
-                    html.Br(),
-                    "S3IC/GUN : " + (etab['codeS3ic'] or "inconnu")]),
-            html.P(etab['address']),
-            html.P('Inscrit sur Trackdéchets depuis le '
-                   f'{dt.strftime(etab["createdAt"], "%d %b %Y")}'),
-            html.P(
-                "L'entreprise a déclaré sur Trackdéchets disposer des "
-                "agréments/récepissés "
-                "suivants :"),
-            html.Ul(make_agreement_list(df_agreement_query)),
-            html.P('Données pour la période du ' +
-                   dt.strftime(date_n_days_ago, "%d %b %Y")
-                   + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
-                   className='bold')
-        ]),
+        'company_details': [
+            dbc.Col([
+                html.P(f'le {dt.strftime(today, "%d %b %Y à %H:%M")}'),
+                html.P(["SIRET : " + etab['siret'],
+                        html.Br(),
+                        "S3IC/GUN : " + (etab['codeS3ic'] or "inconnu")]),
+                html.P(etab['address']),
+                html.P('Inscrit sur Trackdéchets depuis le '
+                       f'{dt.strftime(etab["createdAt"], "%d %b %Y")}'),
+                html.P(
+                    "L'entreprise a déclaré sur Trackdéchets disposer des "
+                    "agréments/récepissés "
+                    "suivants :"),
+                html.Ul(make_agreement_list(df_agreement_query)),
+                html.P('Données pour la période du ' +
+                       dt.strftime(date_n_days_ago, "%d %b %Y")
+                       + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
+                       className='bold')
+            ], width=6
+            ),
+            dbc.Col(
+                [
+                    html.P(
+                        'Les données pour cet établissement peuvent être consultées sur '
+                        'Trackdéchets.'),
+                    html.P(
+                        'Elles comprennent les bordereaux de suivi de déchets (BSD) '
+                        'dématérialisés,'
+                        ' mais ne comprennent pas :'),
+                    html.Ul([
+                        html.Li('les éventuels BSD papiers non dématérialisés'),
+                        html.Li('les bons d\'enlèvement (huiles usagées, pneus)'),
+                        html.Li('les annexes 1 (petites quantités)')
+                    ])
+                ], width=6
+            )
+        ],
         'company_name': etab['name']
     }
