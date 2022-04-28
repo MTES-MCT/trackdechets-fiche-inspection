@@ -5,32 +5,18 @@ import pandas as pd
 import sqlalchemy
 from datetime import datetime as dt
 import locale
-from dash import Input, Output, html
-import json
+from dash import Input, Output, html, dcc
+import dash_bootstrap_components as dbc
 import plotly.express as px
-from dash.html import Div
 
 from .time_config import *
 from .utils import *
-from app.app import dash_app
+from app.app import dash_app, extra_config
 
 # postgresql://admin:admin@localhost:5432/ibnse
 engine = sqlalchemy.create_engine(getenv("DATABASE_URL"))
 
 locale.setlocale(locale.LC_ALL, 'fr_FR')
-
-# Arc en ciel
-# value = '33303497300029'
-# MARTIN
-# value = '31176579600017'
-# SECHE ALLIANCE (pas dans ICPE)
-# value = '55685027900051'
-# SARP
-# SIRET = '30377298200029'
-
-
-# Lpg export recyclage
-# value = '90008481500019'
 
 
 # ******************************************************
@@ -79,9 +65,8 @@ def get_data(value: str) -> str:
 @dash_app.callback(
     Input('query-result', 'data'),
     output=dict(
-        mois_emis=Output('mois_emis', 'figure'),
-        mois_quantités=Output('mois_quantités', 'figure'),
-        poids_departement_recus=Output('poids_departement_recus', 'figure'),
+        bsdd_graphiques_col=Output('bsdd_graphiques_col', 'children'),
+        poids_departement_recus=Output('poids_departement_recus_col', 'children'),
     )
 )
 def get_bsdd_figures(json_data: str):
@@ -179,39 +164,63 @@ def get_bsdd_figures(json_data: str):
         ).update_yaxes(autotypenumbers='strict')
 
         return {
-            "mois_emis": bsdd_emis_acceptation_mois,
-            "mois_quantités": dechets_recus_emis_poids_mois,
-            "poids_departement_recus": dechets_recus_poids_departement
+            "bsdd_graphiques_col": [
+                dbc.Col(
+                    [
+                        dcc.Graph(id='mois_quantités', config=extra_config, figure=dechets_recus_emis_poids_mois)
+                     ], width=6, lg=6),
+                dbc.Col(
+                    [
+                        dcc.Graph(id='mois_emis', config=extra_config, figure=bsdd_emis_acceptation_mois)
+                    ], width=6, lg=6
+                )
+            ],
+            "poids_departement_recus": dcc.Graph(id='poids_departement_recus', config=extra_config,
+                                                 figure=dechets_recus_poids_departement)
         }
+    # No record in the BSDD dataframe
+    return {
+        "bsdd_graphiques_col": [
+            dbc.Col([
+                "Pas de bordereaux entrés dans Trackdéchets pour cet établissement sur la période, "
+                "ni comme émetteur, "
+                "ni comme destinataire."
+            ], width={'size': 4, 'offset': 4})
+        ],
+        "poids_departement_recus": ""
+    }
 
 
 @dash_app.callback(
-    Input('query-result', 'data'),
-    output=dict(
-        poids_emis=Output('poids_emis', 'children'),
-        poids_recus=Output('poids_recu', 'children'),
-        stock_theorique=Output('stock_theorique', 'children'),
-        nb_bsdd_emis=Output('nb_bsdd_emis', 'children'),
-        nb_bsdd_recus=Output('nb_bsdd_recus', 'children'),
-    )
-)
-def get_bsdd_summary(json_data: str):
-    df: pd.DataFrame = pd.read_json(json_data, orient='split', dtype={'poids': float})
+    Output('bsdd_summary', 'children'),
+    Input('query-result', 'data')
 
-    result = dict()
+)
+def get_bsdd_summary(json_data: str) -> list:
+    df: pd.DataFrame = pd.read_json(json_data, orient='split', dtype={'poids': float})
 
     if df.index.size > 0:
         emis = df.query('origine == "émis"')
         recus = df.query('origine == "reçus"')
-        result['nb_bsdd_emis'] = format_number_str(emis.index.size)
         poids_emis_float = emis["poids"].sum()
-        result['poids_emis'] = format_number_str(poids_emis_float)
-        result['nb_bsdd_recus'] = format_number_str(recus.index.size)
         poids_recu_float = recus["poids"].sum()
-        result['poids_recus'] = format_number_str(poids_recu_float)
-        result['stock_theorique'] = format_number_str(poids_recu_float - poids_emis_float)
 
-    return result
+        return [
+            html.H4('BSD dangereux sur la période'),
+            html.P([
+                'Poids émis : ', format_number_str(poids_emis_float), ' t',
+                html.Br(),
+                'Poids reçu : ', format_number_str(poids_recu_float), ' t',
+                html.Br(),
+                'Stock théorique sur la période : ', format_number_str(poids_recu_float - poids_emis_float), ' t']),
+
+            html.P([
+                'BSDD émis : ', format_number_str(emis.index.size),
+                html.Br(),
+                'BSDD reçus : ', format_number_str(recus.index.size),
+            ])
+        ]
+    return []
 
 
 # ******************************************************
@@ -223,7 +232,7 @@ def get_bsdd_summary(json_data: str):
     output=dict(
         company_details=Output('company_details', 'children'),
         company_name=Output('company_name', 'children')),
-    )
+)
 def get_company_data(siret: str) -> dict:
     df_company_query = pd.read_sql_query(
         'SELECT "Company"."siret", "Company"."name", "Company"."createdAt", "Company"."address",'

@@ -58,51 +58,11 @@ def add_figure(fig, fig_id: str) -> dbc.Row:
     )
     return row
 
-    # graph_rows = []
-    # if app.data.df_bsdd.index.size > 0:
-
-
-graph_rows = [
-    dbc.Row([
-        dbc.Col([
-            dcc.Graph(id='mois_quantités', config=extra_config)
-        ], width=6, lg=6),
-        dbc.Col(
-            [
-                dcc.Graph(id='mois_emis', config=extra_config)
-            ], width=6, lg=6
-        ),
-    ]),
-    dbc.Row([
-        dbc.Col([
-            html.H4('BSD dangereux sur la période'),
-            html.P([
-                'Poids émis : ', html.Span(id='poids_emis'), ' t',
-                html.Br(),
-                'Poids reçu : ', html.Span(id='poids_recu'), ' t',
-                html.Br(),
-                'Stock théorique sur la période : ', html.Span(id='stock_theorique'), ' t']),
-
-            html.P([
-                'BSDD émis : ', html.Span(id='nb_bsdd_emis'),
-                html.Br(),
-                'BSDD reçus : ', html.Span(id='nb_bsdd_recus'),
-            ])
-        ], width=12, lg=6),
-        dbc.Col([
-            dcc.Graph(id='poids_departement_recus', config=extra_config)
-        ], width=6, lg=6)
-    ])
-]
 
 # else:
 #     graph_rows = [
 #         dbc.Row([
-#             dbc.Col([
-#                 "Pas de bordereaux entrés dans Trackdéchets pour cet établissement sur la période, "
-#                 "ni comme émetteur, "
-#                 "ni comme destinataire."
-#             ], width={'size': 4, 'offset': 4})
+#
 #         ])
 #     ]
 
@@ -112,13 +72,13 @@ dash_app.layout = html.Main(
             fluid=True,
             id='layout-container',
             children=[
-                         dbc.Row([
-                             dbc.Col(
-                                 dcc.Input("30377298200029", id='siret', type="text", placeholder="30377298200029"),
-                                 width=6
-                             ),
-                             dbc.Col([
-                                 dcc.Markdown("""
+                dbc.Row([
+                    dbc.Col(
+                        dcc.Input("90008481500019", id='siret', type="text"),
+                        width=6
+                    ),
+                    dbc.Col([
+                        dcc.Markdown("""
                                  Pour créer un fichier PDF :
                                  
                                  1. Pressez Ctrl + P pour afficher le menu d'impression
@@ -128,40 +88,52 @@ dash_app.layout = html.Main(
                                  4. Si possible, choisissez d'exclure les en-têtes et pieds de page
                                  5. Validez l'impression et choisissez l'emplacement et le nom du fichier PDF
                                  """)
-                             ],
-                                 width=6
-                             )
-                         ], className='no_print'),
-                         dbc.Row([
-                             html.H1(id='company_name'),
-                         ]),
-                         dbc.Row(
-                             [
-                                 dbc.Col(
-                                     width=6, id='company_details'
-                                 ),
-                                 dbc.Col(
-                                     [
-                                         html.P(
-                                             'Les données pour cet établissement peuvent être consultées sur '
-                                             'Trackdéchets.'),
-                                         html.P(
-                                             'Elles comprennent les bordereaux de suivi de déchets (BSD) '
-                                             'dématérialisés,'
-                                             ' mais ne comprennent pas :'),
-                                         html.Ul([
-                                             html.Li('les éventuels BSD papiers non dématérialisés'),
-                                             html.Li('les bons d\'enlèvement (huiles usagées, pneus)'),
-                                             html.Li('les annexes 1 (petites quantités)')
-                                         ])
-                                     ], width=6
-                                 )
-                             ]
-                         ),
-                         dbc.Row([
-                             html.H2('Données des bordereaux de suivi dématérialisés issues de Trackdéchets')
-                         ]),
-                     ] + graph_rows
+                    ],
+                        width=6
+                    )
+                ], className='no_print'),
+                dbc.Row([
+                    html.H1(id='company_name'),
+                ]),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            # Détails de l'établissement
+                            width=6, id='company_details'
+                        ),
+                        dbc.Col(
+                            [
+                                html.P(
+                                    'Les données pour cet établissement peuvent être consultées sur '
+                                    'Trackdéchets.'),
+                                html.P(
+                                    'Elles comprennent les bordereaux de suivi de déchets (BSD) '
+                                    'dématérialisés,'
+                                    ' mais ne comprennent pas :'),
+                                html.Ul([
+                                    html.Li('les éventuels BSD papiers non dématérialisés'),
+                                    html.Li('les bons d\'enlèvement (huiles usagées, pneus)'),
+                                    html.Li('les annexes 1 (petites quantités)')
+                                ])
+                            ], width=6
+                        )
+                    ]
+                ),
+                dbc.Row([
+                    html.H2('Données des bordereaux de suivi dématérialisés issues de Trackdéchets')
+                ]),
+                dbc.Row([
+
+                ], id='bsdd_graphiques_col'),
+                dbc.Row([
+                    # Stats générales sur les BSDDs
+                    dbc.Col([], width=12, lg=6, id='bsdd_summary'),
+                    dbc.Col([
+
+                    ], width=6, lg=6, id='poids_departement_recus_col')
+                ])
+            ]
+
         ),
         dcc.Store(id='query-result')
     ]
