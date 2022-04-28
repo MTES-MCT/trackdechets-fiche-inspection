@@ -113,8 +113,25 @@ dash_app.layout = html.Main(
             id='layout-container',
             children=[
                          dbc.Row([
-                             dcc.Input("30377298200029", id='siret', type="text", placeholder="30377298200029")
-                         ]),
+                             dbc.Col(
+                                 dcc.Input("30377298200029", id='siret', type="text", placeholder="30377298200029"),
+                                 width=6
+                             ),
+                             dbc.Col([
+                                 dcc.Markdown("""
+                                 Pour créer un fichier PDF :
+                                 
+                                 1. Pressez Ctrl + P pour afficher le menu d'impression
+                                 2. Dans le menu de choix de l'imprimante, sélectionnez "Sauvegarder au format PDF" 
+                                 4. Cliquez sur "Plus de paramètres"
+                                 5. Configurez l'échelle d'impression à 60
+                                 4. Si possible, choisissez d'exclure les en-têtes et pieds de page
+                                 5. Validez l'impression et choisissez l'emplacement et le nom du fichier PDF
+                                 """)
+                             ],
+                                 width=6
+                             )
+                         ], className='no_print'),
                          dbc.Row([
                              html.H1(id='company_name'),
                          ]),

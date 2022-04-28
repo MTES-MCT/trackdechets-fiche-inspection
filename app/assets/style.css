@@ -156,7 +156,13 @@ SPECIFIC to print
         width: 100%;
     }
 
-    #siret {
+
+    #layout-container {
+        max-width: inherit;
+        margin: 0;
+    }
+
+    .no_print {
         display: none;
     }
 }
