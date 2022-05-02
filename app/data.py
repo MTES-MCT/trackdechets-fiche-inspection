@@ -34,7 +34,7 @@ def get_data(value: str) -> str:
     if len(value) == 14:
         df_bsdd_query = pd.read_sql_query(
             'SELECT "id", date_trunc(\'month\', "sentAt") as mois, "emitterCompanyAddress", '
-            '"emitterWorkSitePostalCode",'
+            '"emitterWorkSitePostalCode",  '
             '"quantityReceived" as poids, \'émis\' as origine, "wasteAcceptationStatus" as acceptation '
             'FROM "default$default"."Form" '
             f'WHERE "emitterCompanySiret" = \'{value}\' '
@@ -223,17 +223,16 @@ def get_bsdd_summary(json_data: str, siret: str) -> list:
     return [
         html.H4('BSD dangereux sur la période'),
         html.P([
+            'BSDD émis : ', format_number_str(emis.index.size),
+            html.Br(),
+            'BSDD reçus : ', format_number_str(recus.index.size),
+        ]),
+        html.P([
             'Poids émis : ', format_number_str(poids_emis_float), ' t',
             html.Br(),
             'Poids reçu : ', format_number_str(poids_recu_float), ' t',
             html.Br(),
             'Stock théorique sur la période : ', format_number_str(poids_recu_float - poids_emis_float), ' t']),
-
-        html.P([
-            'BSDD émis : ', format_number_str(emis.index.size),
-            html.Br(),
-            'BSDD reçus : ', format_number_str(recus.index.size),
-        ])
     ]
 
 
