@@ -1,6 +1,7 @@
 *.sh
 .env
-*.csv
+*.
+!app/assets/departement.csv
 .idea
 cache
 __pycache__
