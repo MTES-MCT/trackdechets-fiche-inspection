@@ -269,10 +269,29 @@ def get_company_data(siret: str) -> dict:
         con=engine,
     )
 
+    # Details of what BSD data is shown, displayed in any case:
+    details_data_bsd = [
+        dcc.Markdown('''
+                       Les données pour cet établissement peuvent être consultées sur Trackdéchets. Elles comprennent les 
+                       bordereaux de suivi de déchets (BSD) dématérialisés
+
+                       - émis par l'établissement et enlevé par le transporteur (le BSD peut ne pas avoir encore été reçu 
+                       par le destinataire)
+                       - reçus par l'établissement (le BSD peut ne pas encore avoir été traité)
+
+                       mais ne comprennent pas :
+
+                       - les éventuels BSD papiers non dématérialisés
+                       - les bons d\'enlèvement (huiles usagées, pneus)
+                       - les annexes 1 (petites quantités)
+                       ''')
+
+        ]
+
     # Dataframe has no record, établissement is not in Trackdéchets
     if df_company_query.index.size == 0:
         return {
-            'company_details': dbc.Col([]),
+            'company_details': [dbc.Col([]), dbc.Col(details_data_bsd, width=6)],
             'company_name': "Établissement non inscrit dans Trackdéchets"
         }
 
@@ -339,8 +358,7 @@ def get_company_data(siret: str) -> dict:
                        f'{dt.strftime(etab["createdAt"], "%d %b %Y")}'),
                 html.P(
                     "L'entreprise a déclaré sur Trackdéchets disposer des "
-                    "agréments/récepissés "
-                    "suivants :"),
+                    "agréments/récepissés suivants :"),
                 html.Ul(make_agreement_list(df_agreement_query)),
                 html.P('Données pour la période du ' +
                        dt.strftime(date_n_days_ago, "%d %b %Y")
@@ -349,23 +367,7 @@ def get_company_data(siret: str) -> dict:
             ], width=6
             ),
             dbc.Col(
-                [
-                    dcc.Markdown('''
-                    Les données pour cet établissement peuvent être consultées sur Trackdéchets. Elles comprennent les 
-                    bordereaux de suivi de déchets (BSD) dématérialisés
-                    
-                    - émis par l'établissement et enlevé par le transporteur (le BSD peut ne pas avoir encore été reçu 
-                    par le destinataire)
-                    - reçus par l'établissement (le BSD peut ne pas encore avoir été traité)
-                     
-                    mais ne comprennent pas :
-                    
-                    - les éventuels BSD papiers non dématérialisés
-                    - les bons d\'enlèvement (huiles usagées, pneus)
-                    - les annexes 1 (petites quantités)
-                    ''')
-
-                ], width=6
+                details_data_bsd, width=6
             )
         ],
         'company_name': etab['name']
