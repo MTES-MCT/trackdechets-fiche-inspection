@@ -350,18 +350,21 @@ def get_company_data(siret: str) -> dict:
             ),
             dbc.Col(
                 [
-                    html.P(
-                        'Les données pour cet établissement peuvent être consultées sur '
-                        'Trackdéchets.'),
-                    html.P(
-                        'Elles comprennent les bordereaux de suivi de déchets (BSD) '
-                        'dématérialisés,'
-                        ' mais ne comprennent pas :'),
-                    html.Ul([
-                        html.Li('les éventuels BSD papiers non dématérialisés'),
-                        html.Li('les bons d\'enlèvement (huiles usagées, pneus)'),
-                        html.Li('les annexes 1 (petites quantités)')
-                    ])
+                    dcc.Markdown('''
+                    Les données pour cet établissement peuvent être consultées sur Trackdéchets. Elles comprennent les 
+                    bordereaux de suivi de déchets (BSD) dématérialisés
+                    
+                    - émis par l'établissement et enlevé par le transporteur (le BSD peut ne pas avoir encore été reçu 
+                    par le destinataire)
+                    - reçus par l'établissement (le BSD peut ne pas encore avoir été traité)
+                     
+                    mais ne comprennent pas :
+                    
+                    - les éventuels BSD papiers non dématérialisés
+                    - les bons d\'enlèvement (huiles usagées, pneus)
+                    - les annexes 1 (petites quantités)
+                    ''')
+
                 ], width=6
             )
         ],
