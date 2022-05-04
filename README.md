@@ -1,13 +1,13 @@
 # Fiche d'inspection Trackdéchets
 
-**version 0.1.0**
+**version 0.2.0**
 
 > Application basée sur Plotly Dash consacrée à la production de fiche permettant aux inspecteurs et inspectrices de
 > l'environnement de préparer l'inspection d'un établissement avec des données issues de Trackdéchets.
 
 ### Pré-requis
 
-- python 3.9
+- python 3.10
 - pip
 - [pipenv](https://pipenv.pypa.io/en/latest/)
 
@@ -33,6 +33,16 @@ pipenv run gunicorn --bind 0.0.0.0:8700 app:server
 ```
 
 ### Notes de versions
+
+**0.2.0 04/05/2022**
+
+- information supplémentaires dans l'en-tête
+- support des établissements non-incrits dans Trackdéchets
+  - sans bordereaux
+  - avec bordereaux
+- instructions pour l'édition d'une version PDF
+- champ de sélection du SIRET
+- configuration du déploiement sur Scalingo
 
 **0.1.0 07/04/2022**
 
