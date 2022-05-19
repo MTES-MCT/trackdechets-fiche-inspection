@@ -280,8 +280,6 @@ def get_company_data(siret: str) -> dict:
             agreement_list = [html.Li('néant')]
         return agreement_list
 
-
-
     etab = df_company_query.iloc[0].to_dict()
 
     # Make company types human readable
@@ -345,14 +343,21 @@ def get_company_data(siret: str) -> dict:
                 html.P(etab['address']),
                 html.P('Inscrit sur Trackdéchets depuis le '
                        f'{dt.strftime(etab["createdAt"], "%d %b %Y")}'),
-                html.P(
-                    "L'entreprise a déclaré sur Trackdéchets disposer des "
-                    "agréments/récepissés "
-                    "suivants :"),
-                html.Ul(make_agreement_list(df_agreement_query)),
-                html.P(
-                    "L'entreprise a déclaré sur Trackdéchets pratiquer les activités suivantes :"),
-                html.Ul([html.Li(profil) for profil in etab['companyTypes']]),
+
+                dbc.Row([
+                    dbc.Row([
+                        dbc.Col(html.H4("Informations déclarées sur Trackdechets"),
+                        )
+                    ]),
+                    dbc.Col([
+                        html.H5('Activités'),
+                        html.Ul([html.Li(profil) for profil in etab['companyTypes']]),
+                    ]),
+                    dbc.Col([
+                        html.H5('Agréments et récépissés'),
+                        html.Ul(make_agreement_list(df_agreement_query)),
+                    ]),
+                ], className='framed'),
                 html.P('Données pour la période du ' +
                        dt.strftime(date_n_days_ago, "%d %b %Y")
                        + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
