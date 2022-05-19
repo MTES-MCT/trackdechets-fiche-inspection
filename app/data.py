@@ -54,11 +54,6 @@ def get_data(value: str) -> str:
             con=engine,
         )
 
-        if df_bsdd_query.index.size > 0:
-            df_bsdd_query["poids"] = df_bsdd_query.apply(
-                normalize_quantity_received, axis=1
-            )
-
         return df_bsdd_query.to_json(orient='split', date_format='iso')
 
 
@@ -118,11 +113,6 @@ def get_bsdd_figures(json_data: str, siret: str):
     #
     # BSDD / origine / poids / mois
     #
-
-    df["poids"] = df.apply(
-        normalize_quantity_received, axis=1
-    )
-
     bsdd_grouped_poids_mois = df[['poids', 'origine', 'mois']].groupby(by=['mois', 'origine'],
                                                                        as_index=False).sum()
     bsdd_grouped_poids_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_poids_mois['mois']]
