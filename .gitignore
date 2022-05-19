@@ -1,6 +1,6 @@
 *.sh
 .env
-*.csv
+./*.csv
 .idea
 cache
 __pycache__
