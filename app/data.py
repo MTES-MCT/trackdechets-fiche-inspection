@@ -16,7 +16,7 @@ from app.app import dash_app, extra_config
 # postgresql://admin:admin@localhost:5432/ibnse
 engine = sqlalchemy.create_engine(getenv("DATABASE_URL"))
 
-locale.setlocale(locale.LC_ALL, 'fr_FR')
+locale.setlocale(locale.LC_ALL, 'fr_FR.utf8')
 
 
 # ******************************************************
