@@ -211,20 +211,25 @@ def get_bsdd_summary(json_data: str, siret: str) -> list:
     poids_emis_float = emis["poids"].sum()
     poids_recu_float = recus["poids"].sum()
 
+    bsdd_summary_data = {
+        'Poids émis': format_number_str(poids_emis_float) + ' t',
+        'Poids reçu': format_number_str(poids_recu_float) + ' t',
+        'Stock théorique sur la période' : format_number_str(poids_recu_float - poids_emis_float)+ ' t',
+        'BSDD émis': format_number_str(emis.index.size),
+        'BSDD reçus': format_number_str(recus.index.size),
+    }
+
     return [
         html.H4('BSD dangereux sur la période'),
-        html.P([
-            'Poids émis : ', format_number_str(poids_emis_float), ' t',
-            html.Br(),
-            'Poids reçu : ', format_number_str(poids_recu_float), ' t',
-            html.Br(),
-            'Stock théorique sur la période : ', format_number_str(poids_recu_float - poids_emis_float), ' t']),
-
-        html.P([
-            'BSDD émis : ', format_number_str(emis.index.size),
-            html.Br(),
-            'BSDD reçus : ', format_number_str(recus.index.size),
-        ])
+        dbc.Table(
+            html.Tbody(
+                [
+                    html.Tr(
+                        [html.Td(key), html.Td(el)]
+                    ) for key, el in bsdd_summary_data.items()
+                ]
+            ), className='bsd_summary'
+        ),
     ]
 
 
@@ -350,11 +355,11 @@ def get_company_data(siret: str) -> dict:
                         )
                     ]),
                     dbc.Col([
-                        html.H5('Activités'),
+                        html.P('Activités', className='bold'),
                         html.Ul([html.Li(profil) for profil in etab['companyTypes']]),
                     ]),
                     dbc.Col([
-                        html.H5('Agréments et récépissés'),
+                        html.P('Agréments et récépissés', className='bold'),
                         html.Ul(make_agreement_list(df_agreement_query)),
                     ]),
                 ], className='framed'),
