@@ -1,5 +1,6 @@
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+from os import getenv
 
 from app.app import dash_app, extra_config
 import app.data
@@ -76,7 +77,7 @@ dash_app.layout = html.Main(
                     dbc.Col(
                         [
                             html.Label("SIRET", htmlFor='siret'),
-                            dcc.Input("90008481500019", id='siret', type="text")],
+                            dcc.Input(getenv('DEFAULT_SIRET'), id='siret', type="text")],
                         width=6
                     ),
                     dbc.Col([

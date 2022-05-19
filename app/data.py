@@ -18,6 +18,8 @@ engine = sqlalchemy.create_engine(getenv("DATABASE_URL"))
 
 locale.setlocale(locale.LC_ALL, 'fr_FR.utf8')
 
+departements = pd.read_csv(getenv('DEPARTEMENT_CSV'), index_col='DEP')
+
 
 # ******************************************************
 # BSDD
@@ -130,7 +132,6 @@ def get_bsdd_figures(json_data: str, siret: str):
     df_bsdd_origine_poids['poids'] = df_bsdd_origine_poids['poids'].apply(round)
     df_bsdd_origine_poids.sort_values(by='poids', ascending=True, inplace=True)
     df_bsdd_origine_poids = df_bsdd_origine_poids.tail(10)
-    departements = pd.read_csv('app/assets/departement.csv', index_col='DEP')
     df_bsdd_origine_poids = df_bsdd_origine_poids.merge(departements, left_on='departement_origine',
                                                         right_index=True)
     df_bsdd_origine_poids['LIBELLE'] = df_bsdd_origine_poids['LIBELLE'] + ' (' \
@@ -249,15 +250,14 @@ def get_company_data(siret: str) -> dict:
 
     df_company_query = pd.read_sql_query(
         'SELECT "Company"."siret", "Company"."name", "Company"."createdAt", "Company"."address",'
-        '"Company"."contactPhone",'
-        '"Company"."contactEmail", "Company"."website", installation."codeS3ic" '
+        '"Company"."contactPhone", "Company"."companyTypes", "Company"."contactEmail",'
+        ' "Company"."website", '
+        'installation."codeS3ic" '
         'FROM "default$default"."Company" '
         'LEFT JOIN'
         '"default$default"."Installation" as installation '
         'on "siret" = installation."s3icNumeroSiret" '
-        f'WHERE "siret" = \'{siret}\'',
-
-        con=engine,
+        f'WHERE "siret" = \'{siret}\'', con=engine,
     )
 
     # Dataframe has no record, établissement is not in Trackdéchets
@@ -280,7 +280,24 @@ def get_company_data(siret: str) -> dict:
             agreement_list = [html.Li('néant')]
         return agreement_list
 
-    etab = df_company_query.iloc[0]
+
+
+    etab = df_company_query.iloc[0].to_dict()
+
+    # Make company types human readable
+    company_type_mapping = {
+        'COLLECTOR': 'Tri Transit Regroupement (TTR)',
+        'WASTEPROCESSOR': 'Usine de traitement',
+        'WASTE_CENTER': 'Déchetterie',
+        'BROKER': 'Courtier',
+        'TRADER': 'Négociant',
+        'TRANSPORTER': 'Transporteur',
+        'ECO_ORGANISM': 'Éco-organisme',
+        'PRODUCER': 'Producteur',
+        'WASTE_VEHICLES': 'Centre Véhicules Hors d\'Usage'
+    }
+    etab['companyTypes'] = etab['companyTypes'][1:-1].split(',')
+    etab['companyTypes'] = [company_type_mapping[ctype] for ctype in etab['companyTypes']]
 
     df_agreement_query = pd.read_sql_query(
         'SELECT \'Agré. démolisseur VHU n°\' as "nom", agrement."agrementNumber" as "number", '
@@ -333,6 +350,9 @@ def get_company_data(siret: str) -> dict:
                     "agréments/récepissés "
                     "suivants :"),
                 html.Ul(make_agreement_list(df_agreement_query)),
+                html.P(
+                    "L'entreprise a déclaré sur Trackdéchets pratiquer les activités suivantes :"),
+                html.Ul([html.Li(profil) for profil in etab['companyTypes']]),
                 html.P('Données pour la période du ' +
                        dt.strftime(date_n_days_ago, "%d %b %Y")
                        + ' à aujourd\'hui (' + getenv("TIME_PERIOD_M") + ' derniers mois).',
