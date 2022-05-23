@@ -110,7 +110,7 @@ def get_bsdd_figures(json_data: str, siret: str):
         count()
     df_bsdd_acceptation_mois['mois'] = [dt.strftime(date, "%b/%y")
                                         for date in df_bsdd_acceptation_mois['mois']]
-    df_bsdd_acceptation_mois['acceptation'] = [acceptation[val] if isinstance(val, str) else "n/a"
+    df_bsdd_acceptation_mois['acceptation'] = [acceptation[val] if isinstance(val, str) else "non réceptionné"
                                                for val in df_bsdd_acceptation_mois['acceptation']]
     #
     # BSDD / origine / poids / mois
