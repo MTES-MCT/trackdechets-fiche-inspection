@@ -33,28 +33,41 @@ def get_data(value: str) -> str:
     Queries the configured database for the BSDD data for a given company.
     :return: dataframe of bsdds for a given period of time and a given company
     """
+    q = sqlalchemy.text('SELECT "Form"."id", date_trunc(\'month\', "Form"."sentAt") as mois, '
+                        '\'\' as "emitterCompanyAddress", '
+                        '\'\' as "emitterWorkSitePostalCode",'
+                        '"Form"."quantityReceived" as poids, \'émis\' as "origine", '
+                        '"Form"."wasteAcceptationStatus" as acceptation, '
+                        '"Company"."siret"  as "revisionAuteurSiret",'
+                        'date_trunc(\'month\', "BsddRevisionRequest"."createdAt") as "moisRevision" '
+                        'FROM "default$default"."Form" '
+                        """LEFT JOIN 
+                        "default$default"."BsddRevisionRequest" 
+                        ON "Form".id = "BsddRevisionRequest"."bsddId" 
+                        LEFT JOIN 
+                        "default$default"."Company"
+                        ON "BsddRevisionRequest"."authoringCompanyId" = "Company".id """
+                        f'WHERE "emitterCompanySiret" = \'{value}\' '
+                        'AND "default$default"."Form"."sentAt" >= date_trunc(\'month\','
+                        f"CAST((CAST(now() AS timestamp) + (INTERVAL '-{str(time_delta_m)} month')) AS timestamp)) "
+                        'AND "default$default"."Form"."isDeleted" = FALSE '
+                        
+                        'UNION ALL '
+                        
+                        'SELECT "id", date_trunc(\'month\', "receivedAt") as mois, "emitterCompanyAddress", '
+                        '"emitterWorkSitePostalCode", '
+                        '"quantityReceived" as poids, \'reçus\' as origine, '
+                        '"wasteAcceptationStatus" as acceptation,'
+                        '\'\' as "revisionAuteurSiret",'
+                        '\'2000-01-01\' as "moisRevision" '
+                        'FROM "default$default"."Form" '
+                        f'WHERE "recipientCompanySiret" = \'{value}\' '
+                        'AND "default$default"."Form"."receivedAt" >= date_trunc(\'month\','
+                        f"CAST((CAST(now() AS timestamp) + (INTERVAL '-{str(time_delta_m)} month')) AS timestamp)) "
+                        'AND "default$default"."Form"."isDeleted" = FALSE ')
+
     if len(value) == 14:
-        df_bsdd_query = pd.read_sql_query(
-            'SELECT "id", date_trunc(\'month\', "sentAt") as mois, "emitterCompanyAddress", '
-            '"emitterWorkSitePostalCode",'
-            '"quantityReceived" as poids, \'émis\' as origine, "wasteAcceptationStatus" as acceptation '
-            'FROM "default$default"."Form" '
-            f'WHERE "emitterCompanySiret" = \'{value}\' '
-            'AND "default$default"."Form"."sentAt" >= date_trunc(\'month\','
-            f"CAST((CAST(now() AS timestamp) + (INTERVAL '-{str(time_delta_m)} month')) AS timestamp)) "
-            'AND "default$default"."Form"."isDeleted" = FALSE '
-            'UNION ALL '
-            'SELECT "id", date_trunc(\'month\', "receivedAt") as mois, "emitterCompanyAddress", '
-            '"emitterWorkSitePostalCode", '
-            '"quantityReceived" as poids, \'reçus\' as origine, '
-            '"wasteAcceptationStatus" as acceptation '
-            'FROM "default$default"."Form" '
-            f'WHERE "recipientCompanySiret" = \'{value}\' '
-            'AND "default$default"."Form"."receivedAt" >= date_trunc(\'month\','
-            f"CAST((CAST(now() AS timestamp) + (INTERVAL '-{str(time_delta_m)} month')) AS timestamp)) "
-            'AND "default$default"."Form"."isDeleted" = FALSE ',
-            con=engine,
-        )
+        df_bsdd_query = pd.read_sql_query(q, con=engine)
 
         return df_bsdd_query.to_json(orient='split', date_format='iso')
 
@@ -214,7 +227,7 @@ def get_bsdd_summary(json_data: str, siret: str) -> list:
     bsdd_summary_data = {
         'Poids émis': format_number_str(poids_emis_float) + ' t',
         'Poids reçu': format_number_str(poids_recu_float) + ' t',
-        'Stock théorique sur la période' : format_number_str(poids_recu_float - poids_emis_float)+ ' t',
+        'Stock théorique sur la période': format_number_str(poids_recu_float - poids_emis_float) + ' t',
         'BSDD émis': format_number_str(emis.index.size),
         'BSDD reçus': format_number_str(recus.index.size),
     }
@@ -352,7 +365,7 @@ def get_company_data(siret: str) -> dict:
                 dbc.Row([
                     dbc.Row([
                         dbc.Col(html.H4("Informations déclarées sur Trackdechets"),
-                        )
+                                )
                     ]),
                     dbc.Col([
                         html.P('Activités', className='bold'),
