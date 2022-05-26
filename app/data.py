@@ -199,13 +199,11 @@ def get_bsdd_figures(json_data: str, siret: str):
                                        for date in df_bsdd_revises_grouped['mois']]
     df_bsdd_revises_grouped['bar'] = 'révisions'
 
-    df_bsdd_acceptation_mois_copy: pd.DataFrame = df_bsdd_acceptation_mois.copy().rename(
-        columns={
-            'acceptation': 'category'
-        })
-    df_bsdd_acceptation_mois_copy['bar'] = df_bsdd_acceptation_mois_copy['category'] = 'émis'
-    df_bsdd_acceptation_mois_copy = df_bsdd_acceptation_mois_copy.groupby(by=['mois', 'category', 'bar'],
-                                                                          as_index=False).sum()
+    df_bsdd_mois_copy: pd.DataFrame = emis.copy()[['id', 'mois']]
+    df_bsdd_mois_copy = df_bsdd_mois_copy.groupby(by=['mois'], as_index=False).count()
+    df_bsdd_mois_copy['bar'] = df_bsdd_mois_copy['category'] = 'émis'
+    df_bsdd_mois_copy['mois'] = [dt.strftime(date, "%b/%y") for date in df_bsdd_mois_copy['mois']]
+
 
     #
     # Figures
@@ -221,11 +219,11 @@ def get_bsdd_figures(json_data: str, siret: str):
     )
 
     bsdd_emis_revises_mois.add_trace(
-        go.Bar(x=[df_bsdd_acceptation_mois_copy.mois, df_bsdd_acceptation_mois_copy.bar],
-               y=df_bsdd_acceptation_mois_copy.id,
+        go.Bar(x=[df_bsdd_mois_copy.mois, df_bsdd_mois_copy.bar],
+               y=df_bsdd_mois_copy.id,
                name="BSDD émis",
                marker_color='#2F4077',
-               text=df_bsdd_acceptation_mois_copy['id'],
+               text=df_bsdd_mois_copy['id'],
                )
     )
 
@@ -237,7 +235,7 @@ def get_bsdd_figures(json_data: str, siret: str):
                text=df_temp['id'], )
     )
 
-    df_temp = df_bsdd_revises_grouped.loc[df_bsdd_revises_grouped['category'] == 'autres']
+    df_temp = df_bsdd_revises_grouped.loc[df_bsdd_revises_grouped['category'] == 'autre']
     bsdd_emis_revises_mois.add_trace(
         go.Bar(x=[df_temp.mois, df_bsdd_revises_grouped.bar],
                y=df_temp.id,
