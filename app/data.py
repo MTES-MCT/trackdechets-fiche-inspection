@@ -98,7 +98,6 @@ def get_data(value_siret: str) -> str:
         return json.dumps(datasets)
 
 
-
 @dash_app.callback(
     Input('query-result', 'data'),
     Input('siret', 'value'),
@@ -160,7 +159,7 @@ def get_bsdd_figures(json_data: str, siret: str):
     # BSDD / origine / poids / mois
     #
     bsdd_grouped_poids_mois = df_bsdds[['poids', 'origine', 'mois']].groupby(by=['mois', 'origine'],
-                                                                       as_index=False).sum()
+                                                                             as_index=False).sum()
     bsdd_grouped_poids_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_poids_mois['mois']]
     bsdd_grouped_poids_mois['poids'] = bsdd_grouped_poids_mois['poids'].apply(round)
 
@@ -204,7 +203,6 @@ def get_bsdd_figures(json_data: str, siret: str):
     df_bsdd_mois_copy['bar'] = df_bsdd_mois_copy['category'] = 'émis'
     df_bsdd_mois_copy['mois'] = [dt.strftime(date, "%b/%y") for date in df_bsdd_mois_copy['mois']]
 
-
     #
     # Figures
     #
@@ -239,7 +237,7 @@ def get_bsdd_figures(json_data: str, siret: str):
     bsdd_emis_revises_mois.add_trace(
         go.Bar(x=[df_temp.mois, df_bsdd_revises_grouped.bar],
                y=df_temp.id,
-               name="autre",
+               name="par autre",
                marker_color='#8D533E',
                text=df_temp['id'],
                )
@@ -380,10 +378,29 @@ def get_company_data(siret: str) -> dict:
         f'WHERE "siret" = \'{siret}\'', con=engine,
     )
 
+    # Details of what BSD data is shown, displayed in any case:
+    details_data_bsd = [
+        dcc.Markdown('''
+                       Les données pour cet établissement peuvent être consultées sur Trackdéchets. Elles comprennent les 
+                       bordereaux de suivi de déchets (BSD) dématérialisés
+
+                       - émis par l'établissement et enlevé par le transporteur (le BSD peut ne pas avoir encore été reçu 
+                       par le destinataire)
+                       - reçus par l'établissement (le BSD peut ne pas encore avoir été traité)
+
+                       mais ne comprennent pas :
+
+                       - les éventuels BSD papiers non dématérialisés
+                       - les bons d\'enlèvement (huiles usagées, pneus)
+                       - les annexes 1 (petites quantités)
+                       ''')
+
+    ]
+
     # Dataframe has no record, établissement is not in Trackdéchets
     if df_company_query.index.size == 0:
         return {
-            'company_details': dbc.Col([]),
+            'company_details': [dbc.Col([]), dbc.Col(details_data_bsd, width=6)],
             'company_name': "Établissement non inscrit dans Trackdéchets"
         }
 
@@ -485,20 +502,7 @@ def get_company_data(siret: str) -> dict:
             ], width=6
             ),
             dbc.Col(
-                [
-                    html.P(
-                        'Les données pour cet établissement peuvent être consultées sur '
-                        'Trackdéchets.'),
-                    html.P(
-                        'Elles comprennent les bordereaux de suivi de déchets (BSD) '
-                        'dématérialisés,'
-                        ' mais ne comprennent pas :'),
-                    html.Ul([
-                        html.Li('les éventuels BSD papiers non dématérialisés'),
-                        html.Li('les bons d\'enlèvement (huiles usagées, pneus)'),
-                        html.Li('les annexes 1 (petites quantités)')
-                    ])
-                ], width=6
+                details_data_bsd, width=6
             )
         ],
         'company_name': etab['name']
