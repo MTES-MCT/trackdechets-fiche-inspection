@@ -8,6 +8,8 @@ import locale
 from dash import Input, Output, html, dcc
 import dash_bootstrap_components as dbc
 import plotly.express as px
+import plotly.graph_objects as go
+import json
 
 from .time_config import *
 from .utils import *
@@ -28,48 +30,73 @@ departements = pd.read_csv(getenv('DEPARTEMENT_CSV'), index_col='DEP')
 @dash_app.callback(
     Output('query-result', 'data'),
     Input('siret', 'value'))
-def get_data(value: str) -> str:
+def get_data(value_siret: str) -> str:
     """
     Queries the configured database for the BSDD data for a given company.
     :return: dataframe of bsdds for a given period of time and a given company
     """
-    q = sqlalchemy.text('SELECT "Form"."id", date_trunc(\'month\', "Form"."sentAt") as mois, '
-                        '\'\' as "emitterCompanyAddress", '
-                        '\'\' as "emitterWorkSitePostalCode",'
-                        '"Form"."quantityReceived" as poids, \'émis\' as "origine", '
-                        '"Form"."wasteAcceptationStatus" as acceptation, '
-                        '"Company"."siret"  as "revisionAuteurSiret",'
-                        'date_trunc(\'month\', "BsddRevisionRequest"."createdAt") as "moisRevision" '
-                        'FROM "default$default"."Form" '
-                        """LEFT JOIN 
+    q_bsdds = sqlalchemy.text('SELECT "Form"."id", date_trunc(\'month\', "Form"."sentAt") as mois, '
+                              '\'\' as "emitterCompanyAddress", '
+                              '\'\' as "emitterWorkSitePostalCode",'
+                              '"Form"."quantityReceived" as poids, \'émis\' as "origine", '
+                              '"Form"."wasteAcceptationStatus" as acceptation '
+                              'FROM "default$default"."Form" '
+                              """LEFT JOIN 
                         "default$default"."BsddRevisionRequest" 
                         ON "Form".id = "BsddRevisionRequest"."bsddId" 
                         LEFT JOIN 
                         "default$default"."Company"
                         ON "BsddRevisionRequest"."authoringCompanyId" = "Company".id """
-                        f'WHERE "emitterCompanySiret" = \'{value}\' '
-                        'AND "default$default"."Form"."sentAt" >= date_trunc(\'month\','
-                        f"CAST((CAST(now() AS timestamp) + (INTERVAL '-{str(time_delta_m)} month')) AS timestamp)) "
-                        'AND "default$default"."Form"."isDeleted" = FALSE '
-                        
-                        'UNION ALL '
-                        
-                        'SELECT "id", date_trunc(\'month\', "receivedAt") as mois, "emitterCompanyAddress", '
-                        '"emitterWorkSitePostalCode", '
-                        '"quantityReceived" as poids, \'reçus\' as origine, '
-                        '"wasteAcceptationStatus" as acceptation,'
-                        '\'\' as "revisionAuteurSiret",'
-                        '\'2000-01-01\' as "moisRevision" '
-                        'FROM "default$default"."Form" '
-                        f'WHERE "recipientCompanySiret" = \'{value}\' '
-                        'AND "default$default"."Form"."receivedAt" >= date_trunc(\'month\','
-                        f"CAST((CAST(now() AS timestamp) + (INTERVAL '-{str(time_delta_m)} month')) AS timestamp)) "
-                        'AND "default$default"."Form"."isDeleted" = FALSE ')
+                              f'WHERE "emitterCompanySiret" = \'{value_siret}\' '
+                              'AND "default$default"."Form"."sentAt" >= date_trunc(\'month\','
+                              f"CAST((CAST(now() AS timestamp)"
+                              f" + (INTERVAL '-{str(time_delta_m)} month')) AS timestamp)) "
+                              'AND "default$default"."Form"."isDeleted" = FALSE '
 
-    if len(value) == 14:
-        df_bsdd_query = pd.read_sql_query(q, con=engine)
+                              'UNION ALL '
 
-        return df_bsdd_query.to_json(orient='split', date_format='iso')
+                              'SELECT "id", date_trunc(\'month\', "receivedAt") as mois, "emitterCompanyAddress", '
+                              '"emitterWorkSitePostalCode", '
+                              '"quantityReceived" as poids, \'reçus\' as origine, '
+                              '"wasteAcceptationStatus" as acceptation '
+                              'FROM "default$default"."Form" '
+                              f'WHERE "recipientCompanySiret" = \'{value_siret}\' '
+                              'AND "default$default"."Form"."receivedAt" >= date_trunc(\'month\','
+                              f"CAST((CAST(now() AS timestamp) "
+                              f" + (INTERVAL '-{str(time_delta_m)} month')) AS timestamp)) "
+                              'AND "default$default"."Form"."isDeleted" = FALSE ')
+
+    q_revisions = f"""
+    SELECT
+        "BsddRevisionRequest"."id",
+        "Company"."siret" as "revisionAuteurSiret",
+        date_trunc('month', "BsddRevisionRequest"."createdAt") as "mois" 
+    FROM
+        "default$default"."Form"
+    INNER JOIN
+    "default$default"."BsddRevisionRequest" 
+    ON "Form".id = "BsddRevisionRequest"."bsddId"
+    LEFT JOIN
+    "default$default"."Company"
+    ON "BsddRevisionRequest"."authoringCompanyId" = "Company".id
+
+    WHERE
+        "Form"."emitterCompanySiret" = '{value_siret}' 
+        AND "Form"."sentAt" >= date_trunc('month',CAST((CAST(now() AS timestamp)
+         + (INTERVAL '-12 month')) AS timestamp)) 
+        AND "Form"."isDeleted" = FALSE
+    """
+
+    if len(value_siret) == 14:
+        df_bsdd_query = pd.read_sql_query(q_bsdds, con=engine)
+        df_revisions_query = pd.read_sql_query(q_revisions, con=engine)
+
+        datasets = {
+            'bsdds': df_bsdd_query.to_json(orient='split', date_format='iso'),
+            'revisions': df_revisions_query.to_json(orient='split', date_format='iso'),
+        }
+        return json.dumps(datasets)
+
 
 
 @dash_app.callback(
@@ -78,6 +105,7 @@ def get_data(value: str) -> str:
     output=dict(
         bsdd_graphiques_col=Output('bsdd_graphiques_col', 'children'),
         poids_departement_recus=Output('poids_departement_recus_col', 'children'),
+        bsdd_graphiques_row_2=Output('bsdd_graphiques_row_2', 'children'),
     )
 )
 def get_bsdd_figures(json_data: str, siret: str):
@@ -89,10 +117,12 @@ def get_bsdd_figures(json_data: str, siret: str):
             ],
             "poids_departement_recus": ""
         }
-    df: pd.DataFrame = pd.read_json(json_data, orient='split', convert_dates=['mois'])
+
+    dfs = json.loads(json_data)
+    df_bsdds: pd.DataFrame = pd.read_json(dfs['bsdds'], orient='split', convert_dates=['mois'])
 
     # Are there any BSDD in the dataframe?
-    if df.index.size == 0:
+    if df_bsdds.index.size == 0:
         return {
             "bsdd_graphiques_col": [
                 dbc.Col([
@@ -104,8 +134,8 @@ def get_bsdd_figures(json_data: str, siret: str):
             "poids_departement_recus": ""
         }
 
-    emis = df.query('origine == "émis"')
-    recus = df.query('origine == "reçus"')
+    emis = df_bsdds.query('origine == "émis"')
+    recus = df_bsdds.query('origine == "reçus"')
 
     #
     # BSDD / acceptation / mois
@@ -125,10 +155,11 @@ def get_bsdd_figures(json_data: str, siret: str):
                                         for date in df_bsdd_acceptation_mois['mois']]
     df_bsdd_acceptation_mois['acceptation'] = [acceptation[val] if isinstance(val, str) else "non réceptionné"
                                                for val in df_bsdd_acceptation_mois['acceptation']]
+
     #
     # BSDD / origine / poids / mois
     #
-    bsdd_grouped_poids_mois = df[['poids', 'origine', 'mois']].groupby(by=['mois', 'origine'],
+    bsdd_grouped_poids_mois = df_bsdds[['poids', 'origine', 'mois']].groupby(by=['mois', 'origine'],
                                                                        as_index=False).sum()
     bsdd_grouped_poids_mois['mois'] = [dt.strftime(date, "%b/%y") for date in bsdd_grouped_poids_mois['mois']]
     bsdd_grouped_poids_mois['poids'] = bsdd_grouped_poids_mois['poids'].apply(round)
@@ -149,6 +180,72 @@ def get_bsdd_figures(json_data: str, siret: str):
                                                         right_index=True)
     df_bsdd_origine_poids['LIBELLE'] = df_bsdd_origine_poids['LIBELLE'] + ' (' \
                                        + df_bsdd_origine_poids['poids'].astype(str) + ' t)'
+
+    #
+    # BSDD révisés
+    #
+
+    df_bsdd_revises: pd.DataFrame = pd.read_json(dfs['revisions'], orient='split', convert_dates=['mois'],
+                                                 dtype={'revisionAuteurSiret': str})
+    df_bsdd_revises.rename(columns={
+        'revisionAuteurSiret': 'category'
+    }, inplace=True)
+    df_bsdd_revises['category'] = ['émetteur' if s == siret else 'autre'
+                                   for s in df_bsdd_revises['category']]
+    df_bsdd_revises_grouped: pd.DataFrame = df_bsdd_revises \
+        .groupby(by=['mois', 'category'], as_index=False).count()
+
+    df_bsdd_revises_grouped['mois'] = [dt.strftime(date, "%b/%y") if isinstance(date, dt) else ''
+                                       for date in df_bsdd_revises_grouped['mois']]
+    df_bsdd_revises_grouped['bar'] = 'révisions'
+
+    df_bsdd_acceptation_mois_copy: pd.DataFrame = df_bsdd_acceptation_mois.copy().rename(
+        columns={
+            'acceptation': 'category'
+        })
+    df_bsdd_acceptation_mois_copy['bar'] = df_bsdd_acceptation_mois_copy['category'] = 'émis'
+    df_bsdd_acceptation_mois_copy = df_bsdd_acceptation_mois_copy.groupby(by=['mois', 'category', 'bar'],
+                                                                          as_index=False).sum()
+
+    #
+    # Figures
+    #
+
+    bsdd_emis_revises_mois = go.Figure()
+    bsdd_emis_revises_mois.update_layout(
+        # template=pio.templates["gouv"],
+        xaxis=dict(title_text=""),
+        yaxis=dict(title_text=""),
+        barmode="stack",
+        title="BSDD émis par mois et demandes de révisions",
+    )
+
+    bsdd_emis_revises_mois.add_trace(
+        go.Bar(x=[df_bsdd_acceptation_mois_copy.mois, df_bsdd_acceptation_mois_copy.bar],
+               y=df_bsdd_acceptation_mois_copy.id,
+               name="BSDD émis",
+               marker_color='#2F4077',
+               text=df_bsdd_acceptation_mois_copy['id'],
+               )
+    )
+
+    df_temp = df_bsdd_revises_grouped.loc[df_bsdd_revises_grouped['category'] == 'émetteur']
+    bsdd_emis_revises_mois.add_trace(
+        go.Bar(x=[df_temp.mois, df_bsdd_revises_grouped.bar], y=df_temp.id,
+               name="par l'émetteur",
+               marker_color='#a94645',
+               text=df_temp['id'], )
+    )
+
+    df_temp = df_bsdd_revises_grouped.loc[df_bsdd_revises_grouped['category'] == 'autres']
+    bsdd_emis_revises_mois.add_trace(
+        go.Bar(x=[df_temp.mois, df_bsdd_revises_grouped.bar],
+               y=df_temp.id,
+               name="autre",
+               marker_color='#8D533E',
+               text=df_temp['id'],
+               )
+    )
 
     bsdd_emis_acceptation_mois = px.bar(
         df_bsdd_acceptation_mois,
@@ -172,7 +269,7 @@ def get_bsdd_figures(json_data: str, siret: str):
         title="Déchets entrant et sortant, en tonnes",
         labels={"poids": "", "mois": "", "type": ""},
         markers=True,
-        text="poids"
+        text="poids",
     ).update_traces(textposition="top center")
 
     dechets_recus_poids_departement = px.bar(
@@ -201,7 +298,13 @@ def get_bsdd_figures(json_data: str, siret: str):
             )
         ],
         "poids_departement_recus": dcc.Graph(id='poids_departement_recus', config=extra_config,
-                                             figure=dechets_recus_poids_departement)
+                                             figure=dechets_recus_poids_departement),
+        "bsdd_graphiques_row_2": dbc.Col(
+            [
+                dcc.Graph(id='bsdd_emis_revises_mois', config=extra_config,
+                          figure=bsdd_emis_revises_mois)
+            ], width=6, lg=6)
+
     }
 
 
@@ -214,7 +317,8 @@ def get_bsdd_summary(json_data: str, siret: str) -> list:
     if len(siret) != 14:
         return []
 
-    df: pd.DataFrame = pd.read_json(json_data, orient='split', dtype={'poids': float})
+    dfs = json.loads(json_data)
+    df: pd.DataFrame = pd.read_json(dfs['bsdds'], orient='split', dtype={'poids': float})
 
     if df.index.size == 0:
         return []
