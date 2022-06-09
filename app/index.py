@@ -112,10 +112,7 @@ dash_app.layout = html.Main(
 
                     ], width=6, lg=6, id='poids_departement_recus_col')
                 ]),
-                dbc.Row([
-
-
-                ], id='bsdd_graphiques_row_2'),
+                dbc.Row([], id='bsdd_graphiques_row_2'),
             ]
 
         ),

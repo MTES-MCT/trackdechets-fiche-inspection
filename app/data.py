@@ -300,7 +300,7 @@ def get_bsdd_figures(json_data: str, siret: str):
             [
                 dcc.Graph(id='bsdd_emis_revises_mois', config=extra_config,
                           figure=bsdd_emis_revises_mois)
-            ], width=6, lg=6)
+            ], width=12, lg=12)
 
     }
 
