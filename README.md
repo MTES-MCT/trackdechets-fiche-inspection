@@ -1,6 +1,6 @@
 # Fiche d'inspection Trackdéchets
 
-**version 0.2.0**
+**version 0.3.0**
 
 > Application basée sur Plotly Dash consacrée à la production de fiche permettant aux inspecteurs et inspectrices de
 > l'environnement de préparer l'inspection d'un établissement avec des données issues de Trackdéchets.
@@ -33,6 +33,15 @@ pipenv run gunicorn --bind 0.0.0.0:8700 app:server
 ```
 
 ### Notes de versions
+
+**0.3.0 9/06/2022**
+
+- 🐛 correction du bug de la date de génération de la fiche
+- suppression de la correction du poids
+- affichage des profils déclarés
+- encadrement des informations déclarées
+- reformatage des informations sur les BSDD
+- ajout des BSDD émis et du nombre de révisions
 
 **0.2.0 04/05/2022**
 
