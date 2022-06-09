@@ -120,6 +120,7 @@ def get_bsdd_figures(json_data: str, siret: str):
     dfs = json.loads(json_data)
     df_bsdds: pd.DataFrame = pd.read_json(dfs['bsdds'], orient='split', convert_dates=['mois'])
 
+
     # Are there any BSDD in the dataframe?
     if df_bsdds.index.size == 0:
         return {
@@ -418,6 +419,8 @@ def get_company_data(siret: str) -> dict:
         return agreement_list
 
     etab = df_company_query.iloc[0].to_dict()
+    today = get_today_datetime()
+    date_n_days_ago = get_today_n_days_ago(today)
 
     # Make company types human readable
     company_type_mapping = {
