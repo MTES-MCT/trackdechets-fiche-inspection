@@ -31,8 +31,9 @@ departements = pd.read_csv(getenv('DEPARTEMENT_CSV'), index_col='DEP')
     Output('query-result', 'data'),
     Input('siret', 'value'))
 def get_data(value_siret: str) -> str:
-    """
-    Queries the configured database for the BSDD data for a given company.
+    """Queries the configured database for the BSDD data for a given company.
+
+    :param value_siret: SIRET of a company
     :return: dataframe of bsdds for a given period of time and a given company
     """
     q_bsdds = sqlalchemy.text('SELECT "Form"."id", date_trunc(\'month\', "Form"."sentAt") as mois, '
@@ -87,6 +88,7 @@ def get_data(value_siret: str) -> str:
         AND "Form"."isDeleted" = FALSE
     """
 
+    # If SIRET is valid, move on
     if len(value_siret) == 14:
         df_bsdd_query = pd.read_sql_query(q_bsdds, con=engine)
         df_revisions_query = pd.read_sql_query(q_revisions, con=engine)
@@ -108,7 +110,7 @@ def get_data(value_siret: str) -> str:
     )
 )
 def get_bsdd_figures(json_data: str, siret: str):
-    # Is SIRET 14 char long?
+    # If the SIRET is not 14-char long, return empty layout elements
     if len(siret) != 14:
         return {
             "bsdd_graphiques_col": [
@@ -120,8 +122,7 @@ def get_bsdd_figures(json_data: str, siret: str):
     dfs = json.loads(json_data)
     df_bsdds: pd.DataFrame = pd.read_json(dfs['bsdds'], orient='split', convert_dates=['mois'])
 
-
-    # Are there any BSDD in the dataframe?
+    # If the dataframe is empty, inform the user
     if df_bsdds.index.size == 0:
         return {
             "bsdd_graphiques_col": [
@@ -167,7 +168,6 @@ def get_bsdd_figures(json_data: str, siret: str):
     #
     # BSDD / reçus / département
     #
-
     df_bsdd_origine_poids: pd.DataFrame = recus[['emitterCompanyAddress', 'poids']].copy()
     df_bsdd_origine_poids['departement_origine'] = df_bsdd_origine_poids['emitterCompanyAddress'].str. \
         extract(r"(\d{2})\d{3}")
@@ -184,7 +184,6 @@ def get_bsdd_figures(json_data: str, siret: str):
     #
     # BSDD révisés
     #
-
     df_bsdd_revises: pd.DataFrame = pd.read_json(dfs['revisions'], orient='split', convert_dates=['mois'],
                                                  dtype={'revisionAuteurSiret': str})
     df_bsdd_revises.rename(columns={
@@ -207,7 +206,6 @@ def get_bsdd_figures(json_data: str, siret: str):
     #
     # Figures
     #
-
     bsdd_emis_revises_mois = go.Figure()
     bsdd_emis_revises_mois.update_layout(
         # template=pio.templates["gouv"],
