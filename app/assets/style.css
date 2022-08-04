@@ -4,8 +4,7 @@ body {
 }
 
 #layout-container {
-    max-width: 1200px;
-    margin: auto
+    margin: 20px 120px;
 }
 
 .row {
@@ -165,12 +164,10 @@ SPECIFIC to print
     @page {
         margin: 5mm;
     }
-    * {
-        width: 100%;
-    }
+    
 
     #layout-container {
-        max-width: inherit;
+        max-width: 210mm;
         margin: 0;
     }
 
