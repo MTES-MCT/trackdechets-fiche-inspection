@@ -1,8 +1,12 @@
 select
     id,
     "createdAt",
+    "sentAt",
+    "receivedAt",
+    "processedAt",
     "emitterCompanySiret",
     "recipientCompanySiret",
+    "ownerId",
     "quantityReceived",
     "status"
  from
@@ -12,3 +16,4 @@ where
     or "recipientCompanySiret" = '{siret}'
     and "isDeleted" = false
     and "createdAt" >= current_date - INTERVAL '1 year'
+     

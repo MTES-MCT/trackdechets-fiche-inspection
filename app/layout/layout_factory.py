@@ -8,7 +8,11 @@ from dash import dcc, html, Input, Output, callback
 import pandas as pd
 from app.data.data_extract import make_query
 
-from app.layout.figures_factory import get_bsdd_created_and_revised_figure
+from app.layout.components_factory import (
+    get_annual_stats_components,
+    get_bsdd_created_and_revised_component,
+    get_stock_component,
+)
 
 
 def get_layout() -> html.Main:
@@ -72,7 +76,15 @@ def get_layout() -> html.Main:
                                 [],
                                 id="bsdd-created-rectified",
                                 width=3,
-                            )
+                            ),
+                            dbc.Col(
+                                [],
+                                id="bsdd-stock",
+                                width=3,
+                            ),
+                            dbc.Col(
+                                [], id="bsdd-stats", width=3, class_name="bs-stats"
+                            ),
                         ],
                         id="bsdd-figures",
                     ),
@@ -109,6 +121,8 @@ def get_company_data(siret: str):
 
 @callback(
     Output("bsdd-created-rectified", "children"),
+    Output("bsdd-stock", "children"),
+    Output("bsdd-stats", "children"),
     Input("siret", "value"),
     Input("company-data", "data"),
 )
@@ -117,18 +131,29 @@ def create_bsdd_figures(siret: str, company_data: str):
     if siret is None or len(siret) != 14:
         raise TypeError("Siret is not valid.")
 
-    bsdd_data = make_query("get_bsdd_data", date_columns=["createdAt"], siret=siret)
-
     company_data = json.loads(company_data)
+    company_id = company_data["id"]
+
+    bsdd_data = make_query(
+        "get_bsdd_data",
+        date_columns=["createdAt", "sentAt", "receivedAt", "processedAt"],
+        siret=siret,
+    )
 
     bsdd_revised_data = make_query(
         "get_bsdd_revised_data",
         date_columns=["createdAt"],
-        company_id=company_data["id"],
+        company_id=company_id,
     )
 
-    bsdd_created_revised_figure = dcc.Graph(
-        figure=get_bsdd_created_and_revised_figure(bsdd_data, bsdd_revised_data, siret)
+    bsdd_created_revised_component = get_bsdd_created_and_revised_component(
+        bsdd_data, bsdd_revised_data, siret
     )
 
-    return bsdd_created_revised_figure
+    stock_figure = get_stock_component(bsdd_data, siret)
+
+    annual_stats_component = get_annual_stats_components(
+        bsdd_data, bsdd_revised_data, siret
+    )
+
+    return bsdd_created_revised_component, stock_figure, annual_stats_component

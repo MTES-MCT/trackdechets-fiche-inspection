@@ -1,7 +1,7 @@
 """
 Dash dash_app configuration
 """
-import warnings
+import locale
 from os import getenv
 
 import dash
@@ -11,10 +11,9 @@ from app.data.data import *
 
 import dash_auth
 
-external_scripts = ["https://cdn.plot.ly/plotly-locale-fr-latest.js"]
-extra_config = {"locale": "fr"}
 
 auth_data = {"trackdechets": getenv("APP_PASSWORD")}
+external_scripts = ["https://cdn.plot.ly/plotly-locale-fr-latest.js"]
 
 # Use [dbc.themes.BOOTSTRAP] to import the full Bootstrap CSS
 dash_app = dash.Dash(
