@@ -7,6 +7,7 @@ select
     "emitterCompanySiret",
     "recipientCompanySiret",
     "ownerId",
+    "wasteDetailsQuantity",
     "quantityReceived",
     "status"
  from

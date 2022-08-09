@@ -69,11 +69,7 @@ input#siret {
 }
 
 
-/* Figure component */
 
-.component-title {
-    font-weight: 700;
-}
 
 /* Bordereaux stats component */
 
@@ -119,11 +115,18 @@ input#siret {
 }
 
 .bs-bar-consumed {
+    grid-row: 3/4;
     background-color: hsl(148, 100%, 27%, 0.7);
 
 }
 
+.bs-bar-stock {
+    grid-row: 3/4;
+    background-color: hsl(45, 98%, 62%, 0.8);
+}
+
 .bs-bar-consumed-error {
+    grid-row: 3/4;
     background-color: #8a0007;
     
 }

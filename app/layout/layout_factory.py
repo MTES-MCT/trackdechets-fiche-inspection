@@ -7,6 +7,10 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import pandas as pd
 from app.data.data_extract import make_query
+from app.layout.components.figure_component import (
+    BSCreatedAndRevisedComponent,
+    StockComponent,
+)
 
 from app.layout.components_factory import (
     get_annual_stats_components,
@@ -146,14 +150,29 @@ def create_bsdd_figures(siret: str, company_data: str):
         company_id=company_id,
     )
 
-    bsdd_created_revised_component = get_bsdd_created_and_revised_component(
-        bsdd_data, bsdd_revised_data, siret
+    bsdd_created_revised_component = BSCreatedAndRevisedComponent(
+        component_title="BSD Dangereux émis et corrigés",
+        company_siret=siret,
+        bs_data=bsdd_data,
+        bs_revised_data=bsdd_revised_data,
+    )
+    bsdd_created_revised_component_layout = (
+        bsdd_created_revised_component.create_layout()
     )
 
-    stock_figure = get_stock_component(bsdd_data, siret)
+    stock_component = StockComponent(
+        component_title="Quantité de déchets dangereux en tonnes",
+        company_siret=siret,
+        bs_data=bsdd_data,
+    )
+    stock_component_layout = stock_component.create_layout()
 
     annual_stats_component = get_annual_stats_components(
         bsdd_data, bsdd_revised_data, siret
     )
 
-    return bsdd_created_revised_component, stock_figure, annual_stats_component
+    return (
+        bsdd_created_revised_component_layout,
+        stock_component_layout,
+        annual_stats_component,
+    )

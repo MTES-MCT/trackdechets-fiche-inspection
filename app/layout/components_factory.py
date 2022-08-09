@@ -4,147 +4,9 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import html
-import dash_core_components as dcc
+from dash import html, dcc
 
 from .utils import format_number_str
-
-INCOMING_STATUS = [
-    "RECEIVED",
-    "ACCEPTED",
-    "PROCESSED",
-    "GROUPED",
-    "TEMP_STORED",
-    "TEMP_STORER_ACCEPTED",
-]
-OUTGOING_STATUS = ["SENT", "RESENT", "PROCESSED"]
-
-
-def get_bsdd_created_and_revised_component(
-    bsdd_data: pd.DataFrame, bsdd_revised_data: pd.DataFrame, siret: str
-) -> go.Figure:
-
-    bsdd_emitted = (
-        bsdd_data[bsdd_data["emitterCompanySiret"] == siret]
-        .groupby(pd.Grouper(key="createdAt", freq="1M"))
-        .id.count()
-    )
-    bsdd_revised = bsdd_revised_data.groupby(
-        pd.Grouper(key="createdAt", freq="1M")
-    ).id.count()
-
-    textfont_size = 14
-    bsdd_bars = go.Bar(
-        x=bsdd_emitted.index,
-        y=bsdd_emitted,
-        name="BSDD émis",
-        text=bsdd_emitted,
-        textfont_size=textfont_size,
-        textposition="outside",
-        constraintext="none",
-    )
-    bsdd_revised_bar = go.Bar(
-        x=bsdd_revised.index,
-        y=bsdd_revised,
-        name="BSDD corrigés",
-        text=bsdd_revised,
-        textfont_size=textfont_size,
-    )
-
-    fig = go.Figure([bsdd_bars, bsdd_revised_bar])
-
-    fig.update_layout(
-        margin={"t": 20},
-        legend={"orientation": "h", "y": -0.05, "x": 0.5},
-    )
-
-    fig.update_xaxes(
-        dtick="M1",
-        tickangle=0,
-        tickformat="%b",
-        tick0=min(bsdd_emitted.index.min(), bsdd_revised.index.min()),
-    )
-
-    max_value = max(bsdd_emitted.max(), bsdd_revised.max())
-    fig.update_yaxes(range=[0, max_value * 1.1])
-
-    component = [
-        html.Div(
-            "BSD dangereux émis et corrigés",
-            className="component-title",
-        ),
-        dcc.Graph(
-            figure=fig,
-            config=dict(locale="fr"),
-        ),
-    ]
-
-    return component
-
-
-def get_stock_component(bs_data: pd.DataFrame, siret: str) -> go.Figure:
-
-    one_year_ago = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-01")
-
-    incoming_data = bs_data[
-        (bs_data["recipientCompanySiret"] == siret)
-        & (bs_data["sentAt"] >= one_year_ago)
-        & bs_data["status"].isin(INCOMING_STATUS)
-    ]
-    outgoing_data = bs_data[
-        (bs_data["emitterCompanySiret"] == siret)
-        & (bs_data["receivedAt"] >= one_year_ago)
-        & bs_data["status"].isin(OUTGOING_STATUS)
-    ]
-
-    incoming_data = incoming_data.groupby(pd.Grouper(key="sentAt", freq="1M"))[
-        "quantityReceived"
-    ].sum()
-    outgoing_data = outgoing_data.groupby(pd.Grouper(key="receivedAt", freq="1M"))[
-        "quantityReceived"
-    ].sum()
-
-    text_template = "%{x} - %{y:.0f} Tonnes"
-    incoming_line = go.Scatter(
-        x=incoming_data.index,
-        y=incoming_data,
-        name="Quantité entrante",
-        mode="lines+markers",
-        hovertemplate=text_template,
-    )
-    outgoing_line = go.Scatter(
-        x=outgoing_data.index,
-        y=outgoing_data,
-        name="Quantité sortante",
-        mode="lines+markers",
-        hovertemplate=text_template,
-    )
-
-    fig = go.Figure(data=[incoming_line, outgoing_line])
-    fig.update_layout(
-        margin={"t": 20},
-        legend={"orientation": "h", "y": -0.05, "x": 0.5},
-        legend_font_size=11,
-    )
-    fig.update_xaxes(
-        dtick="M1",
-        tickangle=0,
-        tickformat="%b",
-        tick0=min(incoming_data.index.min(), outgoing_data.index.min()),
-    )
-
-    component = [
-        html.Div(
-            "Quantité de déchets dangereux en tonnes",
-            className="component-title",
-        ),
-        dcc.Graph(
-            figure=fig,
-            config=dict(locale="fr"),
-        ),
-    ]
-
-    return component
 
 
 def get_annual_stats_components(
@@ -172,27 +34,30 @@ def get_annual_stats_components(
     )
     total_incoming_weight = bs_data.loc[
         (bs_data["recipientCompanySiret"] == siret)
-        & (bs_data["sentAt"] >= one_year_ago)
-        & bs_data["status"].isin(INCOMING_STATUS),
+        & (bs_data["receivedAt"] >= one_year_ago),
         "quantityReceived",
     ].sum()
     total_outgoing_weight = bs_data.loc[
-        (bs_data["emitterCompanySiret"] == siret)
-        & (bs_data["receivedAt"] >= one_year_ago)
-        & bs_data["status"].isin(OUTGOING_STATUS),
-        "quantityReceived",
+        (bs_data["emitterCompanySiret"] == siret) & (bs_data["sentAt"] >= one_year_ago),
+        "wasteDetailsQuantity",
     ].sum()
 
-    fraction_outgoing = int(
-        round(total_outgoing_weight / total_incoming_weight, 2) * 100
-    )
+    if total_outgoing_weight != 0:
+        fraction_outgoing = int(
+            round(total_outgoing_weight / total_incoming_weight, 2) * 100
+        )
+    else:
+        fraction_outgoing = 0
+
     print(fraction_outgoing)
     theorical_stock = total_incoming_weight - total_outgoing_weight
     if fraction_outgoing > 100:
         style_end_column = {"gridColumn": "1 / 111"}
+        style_stock_bar = {"display": False}
         outgoing_bar_classname = "bs-bar-consumed-error"
     else:
         style_end_column = {"gridColumn": f"1 / {fraction_outgoing}"}
+        style_stock_bar = {"gridColumn": f"{fraction_outgoing+10} / 111"}
         outgoing_bar_classname = "bs-bar-consumed"
 
     component = [
@@ -260,6 +125,11 @@ def get_annual_stats_components(
                     [],
                     className=outgoing_bar_classname,
                     style=style_end_column,
+                ),
+                html.Div(
+                    [],
+                    className="bs-bar-stock",
+                    style=style_stock_bar,
                 ),
                 html.Div(
                     [
