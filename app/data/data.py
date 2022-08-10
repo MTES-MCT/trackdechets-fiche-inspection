@@ -25,7 +25,7 @@ extra_config = {"locale": "fr"}
 # ******************************************************
 
 
-@callback(Output("query-result", "data"), Input("siret", "value"))
+# @callback(Output("query-result", "data"), Input("siret", "value"))
 def get_data(value_siret: str) -> str:
     """
     Queries the configured database for the BSDD data for a given company.
@@ -94,15 +94,15 @@ def get_data(value_siret: str) -> str:
         return json.dumps(datasets)
 
 
-@callback(
-    Input("query-result", "data"),
-    Input("siret", "value"),
-    output=dict(
-        bsdd_graphiques_col=Output("bsdd_graphiques_col", "children"),
-        poids_departement_recus=Output("poids_departement_recus_col", "children"),
-        bsdd_graphiques_row_2=Output("bsdd_graphiques_row_2", "children"),
-    ),
-)
+# @callback(
+#     Input("query-result", "data"),
+#     Input("siret", "value"),
+#     output=dict(
+#         bsdd_graphiques_col=Output("bsdd_graphiques_col", "children"),
+#         poids_departement_recus=Output("poids_departement_recus_col", "children"),
+#         bsdd_graphiques_row_2=Output("bsdd_graphiques_row_2", "children"),
+#     ),
+# )
 def get_bsdd_figures(json_data: str, siret: str):
     # Is SIRET 14 char long?
     if len(siret) != 14:
@@ -360,11 +360,11 @@ def get_bsdd_figures(json_data: str, siret: str):
     }
 
 
-@callback(
-    Output("bsdd_summary", "children"),
-    Input("query-result", "data"),
-    Input("siret", "value"),
-)
+# @callback(
+#     Output("bsdd_summary", "children"),
+#     Input("query-result", "data"),
+#     Input("siret", "value"),
+# )
 def get_bsdd_summary(json_data: str, siret: str) -> list:
     if len(siret) != 14:
         return []
@@ -413,13 +413,13 @@ def get_bsdd_summary(json_data: str, siret: str) -> list:
 # ******************************************************
 
 
-@callback(
-    Input("siret", "value"),
-    output=dict(
-        company_details=Output("company_details", "children"),
-        company_name=Output("company_name", "children"),
-    ),
-)
+# @callback(
+#     Input("siret", "value"),
+#     output=dict(
+#         company_details=Output("company_details", "children"),
+#         company_name=Output("company_name", "children"),
+#     ),
+# )
 def get_company_data(siret: str) -> dict:
     # The entered SIRET is not 14 char long
     if len(siret) != 14:

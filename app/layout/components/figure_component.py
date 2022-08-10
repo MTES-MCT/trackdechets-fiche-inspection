@@ -27,7 +27,7 @@ class FigureComponent:
     def _add_empty_figure_block(self) -> None:
         self.component_layout.append(
             html.Div(
-                f"PAS DE DONNES POUR LE SIRET {self.company_siret}",
+                f"PAS DE DONNEES POUR LE SIRET {self.company_siret}",
                 className="fc-empty-figure-block",
             )
         )
@@ -65,7 +65,7 @@ class BSCreatedAndRevisedComponent(FigureComponent):
         component_title: str,
         company_siret: str,
         bs_data: pd.DataFrame,
-        bs_revised_data: pd.DataFrame,
+        bs_revised_data: pd.DataFrame = None,
     ) -> None:
 
         super().__init__(component_title, company_siret)
@@ -101,10 +101,7 @@ class BSCreatedAndRevisedComponent(FigureComponent):
         bs_emitted_by_month = self.bs_emitted_by_month
         bs_revised_by_month = self.bs_revised_by_month
 
-        if len(bs_emitted_by_month) == len(bs_revised_by_month) == 0:
-            return True
-
-        if bs_emitted_by_month.isna().all() and bs_revised_by_month.isna().all():
+        if len(bs_emitted_by_month) == 0 and bs_revised_by_month is None:
             return True
 
         return False
@@ -125,17 +122,27 @@ class BSCreatedAndRevisedComponent(FigureComponent):
             textposition="outside",
             constraintext="none",
         )
-        bs_revised_bar = go.Bar(
-            x=bs_revised_by_month.index,
-            y=bs_revised_by_month,
-            name="BSDD corrigés",
-            text=bs_revised_by_month,
-            textfont_size=text_size,
-            textposition="outside",
-            constraintext="none",
-        )
 
-        fig = go.Figure([bs_bars, bs_revised_bar])
+        tick0_min = bs_emitted_by_month.index.min()
+        max_y = bs_emitted_by_month.max()
+
+        fig = go.Figure([bs_bars])
+        if bs_revised_by_month is not None:
+            fig.add_trace(
+                go.Bar(
+                    x=bs_revised_by_month.index,
+                    y=bs_revised_by_month,
+                    name="BSDD corrigés",
+                    text=bs_revised_by_month,
+                    textfont_size=text_size,
+                    textposition="outside",
+                    constraintext="none",
+                )
+            )
+            tick0_min = min(
+                bs_emitted_by_month.index.min(), bs_revised_by_month.index.min()
+            )
+            max_y = max(bs_emitted_by_month.max(), bs_revised_by_month.max())
 
         fig.update_layout(
             margin={"t": 20},
@@ -146,18 +153,18 @@ class BSCreatedAndRevisedComponent(FigureComponent):
             dtick="M1",
             tickangle=0,
             tickformat="%b",
-            tick0=min(bs_emitted_by_month.index.min(), bs_revised_by_month.index.min()),
+            tick0=tick0_min,
         )
 
-        max_value = max(bs_emitted_by_month.max(), bs_revised_by_month.max())
-        fig.update_yaxes(range=[0, max_value * 1.1])
+        fig.update_yaxes(range=[0, max_y * 1.1])
 
         self.figure = fig
 
     def create_layout(self) -> list:
 
         self._preprocess_bs_data()
-        self._preprocess_bs_revised_data()
+        if self.bs_revised_data is not None:
+            self._preprocess_bs_revised_data()
 
         super().create_layout()
 

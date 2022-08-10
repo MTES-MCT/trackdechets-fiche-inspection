@@ -1,8 +1,8 @@
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+import pandas as pd
 
 import app.data.data
-import app.utils
 
 
 def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):

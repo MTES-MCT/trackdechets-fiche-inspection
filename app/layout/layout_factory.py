@@ -1,22 +1,16 @@
-from gc import callbacks
+from datetime import datetime
 import json
-import os
-from turtle import width
+import logging
 
 import dash_bootstrap_components as dbc
-from dash import dcc, html, Input, Output, callback
 import pandas as pd
-from app.data.data_extract import make_query
-from app.layout.components.figure_component import (
-    BSCreatedAndRevisedComponent,
-    StockComponent,
-)
 
-from app.layout.components_factory import (
-    get_annual_stats_components,
-    get_bsdd_created_and_revised_component,
-    get_stock_component,
-)
+from app.data.data_extract import make_query
+from dash import Input, Output, State, callback, dcc, html, no_update
+from dash.exceptions import PreventUpdate
+from app.layout.components_factory import create_bs_components_layouts
+
+logger = logging.getLogger()
 
 
 def get_layout() -> html.Main:
@@ -32,12 +26,17 @@ def get_layout() -> html.Main:
                                 [
                                     html.Label("SIRET", htmlFor="siret"),
                                     dcc.Input(
-                                        os.environ["DEFAULT_SIRET"],
                                         id="siret",
                                         type="text",
                                         minLength=14,
                                         maxLength=14,
+                                        autoComplete="true",
                                     ),
+                                    html.Button(
+                                        "Générer",
+                                        id="submit-siret",
+                                    ),
+                                    html.Div(id="alert-container"),
                                 ],
                                 width=6,
                             ),
@@ -86,93 +85,180 @@ def get_layout() -> html.Main:
                                 id="bsdd-stock",
                                 width=3,
                             ),
-                            dbc.Col(
-                                [], id="bsdd-stats", width=3, class_name="bs-stats"
-                            ),
+                            dbc.Col([], id="bsdd-stats", width=3),
                         ],
                         id="bsdd-figures",
                     ),
-                    dbc.Row([], id="bsdd_graphiques_col"),
                     dbc.Row(
                         [
-                            # Stats générales sur les BSDDs
-                            dbc.Col([], width=12, lg=6, id="bsdd_summary"),
                             dbc.Col(
-                                [], width=6, lg=6, id="poids_departement_recus_col"
+                                [],
+                                id="bsda-created-rectified",
+                                width=3,
                             ),
+                            dbc.Col(
+                                [],
+                                id="bsda-stock",
+                                width=3,
+                            ),
+                            dbc.Col([], id="bsda-stats", width=3),
+                        ],
+                        id="bsda-figures",
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(id="bsd-refusal", width=3),
+                            dbc.Col(id="complementary-info", width=3),
                         ]
                     ),
-                    dbc.Row([], id="bsdd_graphiques_row_2"),
                 ],
             ),
-            dcc.Store(id="query-result"),
             dcc.Store(id="company-data"),
+            dcc.Store(id="bsdd-data"),
+            dcc.Store(id="bsda-data"),
         ]
     )
     return layout
 
 
-@callback(Output("company-data", "data"), Input("siret", "value"))
-def get_company_data(siret: str):
+@callback(
+    output=[
+        (
+            Output("company-data", "data"),
+            Output("bsdd-data", "data"),
+            Output("bsda-data", "data"),
+        ),
+        Output("alert-container", "children"),
+    ],
+    inputs=[Input("submit-siret", "n_clicks"), State("siret", "value")],
+)
+def get_company_data(n_clicks: int, siret: str):
 
-    if siret is None or len(siret) != 14:
-        raise TypeError("Siret is not valid.")
+    if n_clicks is not None:
 
-    company_data_df = make_query("get_company_data", siret=siret)
+        res = []
+        if siret is None or len(siret) != 14:
+            raise TypeError("Siret is not valid.")
 
-    return company_data_df.iloc[0].to_json()
+        company_data_df = make_query("get_company_data", siret=siret)
+
+        if len(company_data_df) == 0:
+
+            return (
+                no_update,
+                dbc.Alert(
+                    "Aucune entreprise avec ce SIRET inscrite sur Trackdéchets",
+                    color="danger",
+                ),
+            )
+
+        res.append(company_data_df.iloc[0].to_json())
+
+        bs_configs = [
+            {
+                "bsdd_data_df": "get_bsdd_data",
+                "bsdd_revised_data_df": "get_bsdd_revised_data",
+            },
+            {
+                "bsda_data_df": "get_bsda_data",
+                "bsda_revised_data_df": "get_bsda_revised_data",
+            },
+        ]
+
+        for bs_config in bs_configs:
+
+            keys = list(bs_config.keys())
+            queries = list(bs_config.values())
+
+            to_store = {key: None for key in keys}
+
+            bs_data = make_query(
+                queries[0],
+                date_columns=["createdAt", "sentAt", "receivedAt", "processedAt"],
+                siret=siret,
+            )
+
+            if len(bs_data) != 0:
+
+                to_store[keys[0]] = bs_data.to_json()
+                if len(queries) == 2:
+                    bs_revised_data = make_query(
+                        queries[1],
+                        date_columns=["createdAt"],
+                        company_id=company_data_df["id"],
+                    )
+                    if len(bs_revised_data) > 0:
+                        to_store[keys[1]] = bs_revised_data.to_json()
+
+                res.append(to_store)
+            else:
+                res.append(None)
+        print(res)
+        return tuple(res), None
+    else:
+        raise PreventUpdate
 
 
 @callback(
     Output("bsdd-created-rectified", "children"),
     Output("bsdd-stock", "children"),
     Output("bsdd-stats", "children"),
-    Input("siret", "value"),
     Input("company-data", "data"),
+    Input("bsdd-data", "data"),
 )
-def create_bsdd_figures(siret: str, company_data: str):
-
-    if siret is None or len(siret) != 14:
-        raise TypeError("Siret is not valid.")
+def create_bsdd_figures(company_data: str, bsdd_data: str):
 
     company_data = json.loads(company_data)
-    company_id = company_data["id"]
+    siret = company_data["siret"]
 
-    bsdd_data = make_query(
-        "get_bsdd_data",
-        date_columns=["createdAt", "sentAt", "receivedAt", "processedAt"],
-        siret=siret,
-    )
+    if bsdd_data is None or len(bsdd_data) == 0:
+        logger.info("Pas de données trouvées pour le siret %s", siret)
+        return [], [], []
 
-    bsdd_revised_data = make_query(
-        "get_bsdd_revised_data",
-        date_columns=["createdAt"],
-        company_id=company_id,
+    bsdd_data_df = pd.read_json(
+        bsdd_data["bsdd_data_df"],
+        dtype={
+            "emitterCompanySiret": str,
+            "recipientCompanySiret": str,
+            "wasteDetailsQuantity": float,
+            "quantityReceived": float,
+        },
+        convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
     )
+    if bsdd_data["bsdd_revised_data_df"] is not None:
+        bsdd_revised_data_df = pd.read_json(
+            bsdd_data["bsdd_revised_data_df"], dtype=False, convert_dates=["createdAt"]
+        )
+    else:
+        bsdd_revised_data_df = None
 
-    bsdd_created_revised_component = BSCreatedAndRevisedComponent(
-        component_title="BSD Dangereux émis et corrigés",
-        company_siret=siret,
-        bs_data=bsdd_data,
-        bs_revised_data=bsdd_revised_data,
-    )
-    bsdd_created_revised_component_layout = (
-        bsdd_created_revised_component.create_layout()
-    )
+    outputs = create_bs_components_layouts(bsdd_data_df, bsdd_revised_data_df, siret)
 
-    stock_component = StockComponent(
-        component_title="Quantité de déchets dangereux en tonnes",
-        company_siret=siret,
-        bs_data=bsdd_data,
-    )
-    stock_component_layout = stock_component.create_layout()
+    return outputs
 
-    annual_stats_component = get_annual_stats_components(
-        bsdd_data, bsdd_revised_data, siret
-    )
 
-    return (
-        bsdd_created_revised_component_layout,
-        stock_component_layout,
-        annual_stats_component,
-    )
+@callback(
+    Output("bsda-created-rectified", "children"),
+    Output("bsda-stock", "children"),
+    Output("bsda-stats", "children"),
+    Input("company-data", "data"),
+    Input("bsda-data", "data"),
+)
+def create_bsda_figures(company_data: str, bsda_data: str):
+
+    company_data = json.loads(company_data)
+    siret = company_data["siret"]
+
+    if bsda_data is None or len(bsda_data) == 0:
+        logger.info("Pas de données BSDA trouvées pour le siret %s", siret)
+        return [], [], []
+
+    bsda_data_df = pd.read_json(bsda_data["bsda_data_df"])
+    if bsda_data["bsda_revised_data_df"] is not None:
+        bsda_revised_data_df = pd.read_json(bsda_data["bsda_revised_data_df"])
+    else:
+        bsda_revised_data_df = None
+
+    outputs = create_bs_components_layouts(bsda_data_df, bsda_revised_data_df, siret)
+
+    return outputs
