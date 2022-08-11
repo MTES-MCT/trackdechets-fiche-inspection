@@ -39,6 +39,27 @@ class StatsComponent:
             )
         )
 
+    def _check_empty_data(self) -> bool:
+
+        bs_data = self.bs_data
+        siret = self.company_siret
+        bs_data = bs_data[bs_data["emitterCompanySiret"] == siret]
+        bs_revised_data = self.bs_revised_data
+
+        if (len(bs_data) == 0) and (
+            (bs_revised_data is None) or (len(bs_revised_data) == 0)
+        ):
+            return True
+        return False
+
+    def _add_empty_block(self) -> None:
+        self.component_layout.append(
+            html.Div(
+                f"PAS DE DONNEES POUR LE SIRET {self.company_siret}",
+                className="fc-empty-figure-block",
+            )
+        )
+
     def _create_stats(self) -> None:
 
         one_year_ago = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-01")
@@ -77,7 +98,12 @@ class StatsComponent:
             "wasteDetailsQuantity",
         ].sum()
 
-        self.theorical_stock = self.total_incoming_weight - self.total_outgoing_weight
+        if self.total_outgoing_weight != 0:
+            self.theorical_stock = (
+                self.total_incoming_weight - self.total_outgoing_weight
+            )
+        else:
+            self.theorical_stock = 0
 
         if self.total_incoming_weight != 0:
             self.fraction_outgoing = int(
@@ -142,7 +168,7 @@ class StatsComponent:
         if self.total_incoming_weight == 0:
             incoming_weight_bar_classname += "-error"
 
-        if self.fraction_outgoing is None:
+        if (self.total_outgoing_weight == 0) or (self.fraction_outgoing is None):
             style_outgoing_bar = None
             style_stock_bar = None
             outgoing_bar_classname = "sc-bar-consumed-error"
@@ -152,7 +178,7 @@ class StatsComponent:
             outgoing_bar_classname = "sc-bar-consumed-error"
         else:
             style_outgoing_bar = {"gridColumn": f"1 / {max(self.fraction_outgoing,2)}"}
-            style_stock_bar = {"gridColumn": f"{self.fraction_outgoing+10} / 111"}
+            style_stock_bar = {"gridColumn": f"{self.fraction_outgoing+5} / 111"}
             outgoing_bar_classname = "sc-bar-consumed"
 
         self.component_layout.append(
@@ -161,7 +187,7 @@ class StatsComponent:
                     html.P(
                         [
                             html.Span(
-                                [format_number_str(self.total_incoming_weight)],
+                                [f"{self.total_incoming_weight:.1f}"],
                                 className="sc-medium-number",
                             ),
                             "tonnes entrantes",
@@ -182,20 +208,14 @@ class StatsComponent:
                     html.Div(
                         [
                             html.P(
-                                [
-                                    f"{format_number_str(int(self.total_outgoing_weight))} tonnes sortantes"
-                                ]
+                                [f"{self.total_outgoing_weight:.1f} tonnes sortantes"]
                             )
                         ],
                         className="sc-bar-number-outgoing",
                     ),
                     html.Div(
                         [
-                            html.P(
-                                [
-                                    f"{format_number_str(int(self.theorical_stock))} tonnes"
-                                ]
-                            ),
+                            html.P([f"{self.theorical_stock:.1f} tonnes"]),
                             html.P(["stock théorique"]),
                         ],
                         className="sc-bar-number-stock",
@@ -207,6 +227,11 @@ class StatsComponent:
 
     def create_layout(self) -> list:
         self._add_component_title()
+
+        if self._check_empty_data():
+            self._add_empty_block()
+            return self.component_layout
+
         self._create_stats()
         self._add_stats()
 

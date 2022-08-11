@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Dict, List
 from dash import html, dcc
 import pandas as pd
 import plotly.graph_objects as go
@@ -250,6 +251,81 @@ class StockComponent(FigureComponent):
             tick0=min(
                 incoming_data_by_month.index.min(), outgoing_data_by_month.index.min()
             ),
+            dtick="M1",
+        )
+
+        self.figure = fig
+
+    def create_layout(self) -> list:
+
+        self._preprocess_data()
+        super().create_layout()
+
+        return self.component_layout
+
+
+class BSRefusalsComponent(FigureComponent):
+    def __init__(
+        self,
+        component_title: str,
+        company_siret: str,
+        bs_data_dfs: Dict[str, pd.DataFrame],
+    ) -> None:
+
+        super().__init__(component_title, company_siret)
+
+        self.bs_data_dfs = bs_data_dfs
+
+        self.preprocessed_series = None
+
+    def _check_data_empty(self) -> bool:
+
+        for df in self.preprocessed_series.values():
+
+            if (df is not None) and (len(df) == 0):
+                return False
+
+        return True
+
+    def _preprocess_data(self) -> None:
+        def compute_perc_refusals(df: pd.DataFrame):
+
+            return len(df[df["status"] == "REFUSED"]) / len(df)
+
+        preprocessed_series = {}
+        for name, df in self.bs_data_dfs.items():
+            preprocessed_serie = (
+                df[df["emitterCompanySiret"] == self.company_siret]
+                .groupby(pd.Grouper(key="createdAt", freq="1M"))
+                .apply(compute_perc_refusals)
+            )
+            if len(preprocessed_serie) > 0:
+                preprocessed_series[name] = preprocessed_serie
+
+        self.preprocessed_series = preprocessed_series
+
+    def _create_figure(self) -> None:
+
+        traces = []
+
+        mins = []
+        for name, serie in self.preprocessed_series.items():
+
+            trace = go.Scatter(x=serie.index, y=serie, name=name, mode="lines+markers")
+            mins.append(serie.min())
+            traces.append(trace)
+
+        fig = go.Figure(traces)
+
+        fig.update_layout(
+            margin={"t": 20},
+            legend={"orientation": "h", "y": -0.05, "x": 0.5},
+            legend_font_size=11,
+        )
+        fig.update_xaxes(
+            tickangle=0,
+            tickformat="%b",
+            tick0=min(mins),
             dtick="M1",
         )
 

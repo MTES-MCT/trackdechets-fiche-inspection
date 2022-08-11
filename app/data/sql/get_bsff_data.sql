@@ -3,14 +3,14 @@ select
     "createdAt",
     "transporterTransportTakenOverAt" as "sentAt",
     "destinationReceptionDate" as "receivedAt",
-    "destinationOperationDate" as "processedAt",
+    "destinationOperationSignatureDate" as "processedAt",
     "emitterCompanySiret",
     "destinationCompanySiret" as "recipientCompanySiret",
     "weightValue" as "wasteDetailsQuantity",
     "destinationReceptionWeight" as "quantityReceived",
     "status"
 from
-    "default$default"."Bsda"
+    "default$default"."Bsff" 
 where
     ("emitterCompanySiret" = '{siret}'
         or "destinationCompanySiret" = '{siret}')

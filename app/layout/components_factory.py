@@ -1,3 +1,4 @@
+from typing import List
 from app.layout.components.figure_component import (
     BSCreatedAndRevisedComponent,
     StockComponent,
@@ -7,10 +8,13 @@ import pandas as pd
 
 
 def create_bs_components_layouts(
-    bs_data: pd.DataFrame, bs_revised_data: pd.DataFrame, siret: str
+    bs_data: pd.DataFrame,
+    bs_revised_data: pd.DataFrame,
+    siret: str,
+    component_titles: List[str],
 ) -> tuple:
     bs_created_revised_component = BSCreatedAndRevisedComponent(
-        component_title="BSD Dangereux émis et corrigés",
+        component_title=component_titles[0],
         company_siret=siret,
         bs_data=bs_data,
         bs_revised_data=bs_revised_data,
@@ -18,14 +22,14 @@ def create_bs_components_layouts(
     bs_created_revised_component_layout = bs_created_revised_component.create_layout()
 
     stock_component = StockComponent(
-        component_title="Quantité de déchets dangereux en tonnes",
+        component_title=component_titles[1],
         company_siret=siret,
         bs_data=bs_data,
     )
     stock_component_layout = stock_component.create_layout()
 
     annual_stats_component = StatsComponent(
-        component_title="BSD dangereux sur l'année",
+        component_title=component_titles[2],
         company_siret=siret,
         bs_data=bs_data,
         bs_revised_data=bs_revised_data,
