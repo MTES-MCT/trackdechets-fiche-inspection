@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta, tzinfo
 import json
 import logging
+from zoneinfo import ZoneInfo
 
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -8,6 +9,7 @@ import pandas as pd
 from app.data.data_extract import make_query
 from dash import Input, Output, State, callback, dcc, html, no_update
 from dash.exceptions import PreventUpdate
+from .components.company_component import CompanyComponent
 from app.layout.components.figure_component import BSRefusalsComponent
 from app.layout.components_factory import create_bs_components_layouts
 
@@ -39,34 +41,35 @@ def get_layout() -> html.Main:
                                     ),
                                     html.Div(id="alert-container"),
                                 ],
-                                width=6,
-                            ),
-                            dbc.Col(
-                                [
-                                    dcc.Markdown(
-                                        """
-                                    Pour créer un fichier PDF :
-                                    
-                                    1. Pressez Ctrl + P pour afficher le menu d'impression
-                                    2. Dans le menu de choix de l'imprimante, sélectionnez "Sauvegarder au format PDF" 
-                                    4. Cliquez sur "Plus de paramètres"
-                                    5. Configurez l'échelle d'impression à 60
-                                    4. Si possible, choisissez d'exclure les en-têtes et pieds de page
-                                    5. Validez l'impression et choisissez l'emplacement et le nom du fichier PDF
-                                    """
-                                    )
-                                ],
-                                width=6,
+                                width=12,
                             ),
                         ],
                         className="no_print",
                     ),
                     dbc.Row(
                         [
-                            html.H1(id="company_name"),
+                            dbc.Col(id="company_name", width=12),
                         ]
                     ),
-                    dbc.Row(id="company_details"),
+                    dbc.Row(
+                        [
+                            dbc.Col(id="company-details", width=6),
+                            dbc.Col(
+                                dcc.Markdown(
+                                    """
+Les données pour cet établissement peuvent être consultées sur Trackdéchets.
+
+Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, mais ne comprennent pas :
+- les éventuels BSD papiers non dématérialisés,
+- les bons d’enlèvements (huiles usagées et pneus)
+- les annexes 1 (petites quantités)""",
+                                    style={"display": "None"},
+                                    id="general-infos",
+                                ),
+                                width=6,
+                            ),
+                        ]
+                    ),
                     dbc.Row(
                         [
                             html.H2(
@@ -124,6 +127,38 @@ def get_layout() -> html.Main:
                     ),
                     dbc.Row(
                         [
+                            dbc.Col(
+                                [],
+                                id="bsdasri-created-rectified",
+                                width=3,
+                            ),
+                            dbc.Col(
+                                [],
+                                id="bsdasri-stock",
+                                width=3,
+                            ),
+                            dbc.Col([], id="bsdasri-stats", width=3),
+                        ],
+                        id="bsdasri-figures",
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [],
+                                id="bsvhu-created-rectified",
+                                width=3,
+                            ),
+                            dbc.Col(
+                                [],
+                                id="bsvhu-stock",
+                                width=3,
+                            ),
+                            dbc.Col([], id="bsvhu-stats", width=3),
+                        ],
+                        id="bsvhu-figures",
+                    ),
+                    dbc.Row(
+                        [
                             dbc.Col(id="bs-refusal", width=3),
                             dbc.Col(id="complementary-info", width=3),
                         ]
@@ -134,6 +169,8 @@ def get_layout() -> html.Main:
             dcc.Store(id="bsdd-data"),
             dcc.Store(id="bsda-data"),
             dcc.Store(id="bsff-data"),
+            dcc.Store(id="bsdasri-data"),
+            dcc.Store(id="bsvhu-data"),
         ]
     )
     return layout
@@ -146,6 +183,8 @@ def get_layout() -> html.Main:
             Output("bsdd-data", "data"),
             Output("bsda-data", "data"),
             Output("bsff-data", "data"),
+            Output("bsdasri-data", "data"),
+            Output("bsvhu-data", "data"),
         ),
         Output("alert-container", "children"),
     ],
@@ -157,14 +196,20 @@ def get_company_data(n_clicks: int, siret: str):
 
         res = []
         if siret is None or len(siret) != 14:
-            raise TypeError("Siret is not valid.")
+            return (
+                (no_update,) * 6,
+                dbc.Alert(
+                    "SIRET non conforme",
+                    color="danger",
+                ),
+            )
 
         company_data_df = make_query("get_company_data", siret=siret)
 
         if len(company_data_df) == 0:
 
             return (
-                no_update,
+                (no_update,) * 6,
                 dbc.Alert(
                     "Aucune entreprise avec ce SIRET inscrite sur Trackdéchets",
                     color="danger",
@@ -183,6 +228,8 @@ def get_company_data(n_clicks: int, siret: str):
                 "bsda_revised_data_df": "get_bsda_revised_data",
             },
             {"bsff_data_df": "get_bsff_data"},
+            {"bsdasri_data_df": "get_bsdasri_data"},
+            {"bsvhu_data_df": "get_bsvhu_data"},
         ]
 
         for bs_config in bs_configs:
@@ -216,6 +263,32 @@ def get_company_data(n_clicks: int, siret: str):
         return tuple(res), None
     else:
         raise PreventUpdate
+
+
+@callback(
+    Output("company_name", "children"),
+    Output("general-infos", "style"),
+    Input("company-data", "data"),
+)
+def create_company_header(company_data: str):
+    company_data = json.loads(company_data)
+    company_name = company_data["name"]
+    today_date = datetime.now(tz=ZoneInfo("Europe/Paris")).strftime("%d %B %Y")
+
+    layout = html.H1(f"{company_name} - {today_date}")
+    return layout, {"display": "block"}
+
+
+@callback(
+    Output("company-details", "children"),
+    Input("company-data", "data"),
+)
+def create_company_details(company_data: str):
+    company_data = json.loads(company_data)
+
+    company_component = CompanyComponent(company_data=company_data)
+
+    return company_component.create_layout()
 
 
 @callback(
@@ -355,16 +428,105 @@ def create_bsff_figures(company_data: str, bsff_data: str):
 
 
 @callback(
+    Output("bsdasri-created-rectified", "children"),
+    Output("bsdasri-stock", "children"),
+    Output("bsdasri-stats", "children"),
+    Input("company-data", "data"),
+    Input("bsdasri-data", "data"),
+)
+def create_bsdasri_figures(company_data: str, bsdasri_data: str):
+
+    company_data = json.loads(company_data)
+    siret = company_data["siret"]
+
+    if bsdasri_data is None or len(bsdasri_data) == 0:
+        logger.info("Pas de données BSDA trouvées pour le siret %s", siret)
+        return [], [], []
+
+    bsdasri_data_df = pd.read_json(
+        bsdasri_data["bsdasri_data_df"],
+        dtype={
+            "emitterCompanySiret": str,
+            "recipientCompanySiret": str,
+            "wasteDetailsQuantity": float,
+            "quantityReceived": float,
+        },
+        convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
+    )
+
+    outputs = create_bs_components_layouts(
+        bsdasri_data_df,
+        None,
+        siret,
+        [
+            "BS DASRI émis et corrigés",
+            "Quantité de DASRI en tonnes",
+            "BS DASRI sur l'année",
+        ],
+    )
+
+    return outputs
+
+
+@callback(
+    Output("bsvhu-created-rectified", "children"),
+    Output("bsvhu-stock", "children"),
+    Output("bsvhu-stats", "children"),
+    Input("company-data", "data"),
+    Input("bsvhu-data", "data"),
+)
+def create_bsvhu_figures(company_data: str, bsvhu_data: str):
+
+    company_data = json.loads(company_data)
+    siret = company_data["siret"]
+
+    if bsvhu_data is None or len(bsvhu_data) == 0:
+        logger.info("Pas de données BSDA trouvées pour le siret %s", siret)
+        return [], [], []
+
+    bsvhu_data_df = pd.read_json(
+        bsvhu_data["bsvhu_data_df"],
+        dtype={
+            "emitterCompanySiret": str,
+            "recipientCompanySiret": str,
+            "wasteDetailsQuantity": float,
+            "quantityReceived": float,
+        },
+        convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
+    )
+
+    outputs = create_bs_components_layouts(
+        bsvhu_data_df,
+        None,
+        siret,
+        [
+            "BS VHU émis et corrigés",
+            "Quantité de VHU en tonnes",
+            "BS VHU sur l'année",
+        ],
+    )
+
+    return outputs
+
+
+@callback(
     output=(Output("bs-refusal", "children")),
     inputs=(
         Input("company-data", "data"),
         Input("bsdd-data", "data"),
         Input("bsda-data", "data"),
         Input("bsff-data", "data"),
+        Input("bsdasri-data", "data"),
+        Input("bsvhu-data", "data"),
     ),
 )
 def create_refusals_figure(
-    company_data: str, bsdd_data: str, bsda_data: str, bsff_data: str
+    company_data: str,
+    bsdd_data: str,
+    bsda_data: str,
+    bsff_data: str,
+    bsdasri_data: str,
+    bsvhu_data: str,
 ):
 
     company_data = json.loads(company_data)
@@ -375,6 +537,8 @@ def create_refusals_figure(
         {"name": "Déchets Dangereux", "data": bsdd_data},
         {"name": "Amiante", "data": bsda_data},
         {"name": "Fluides Frigo", "data": bsff_data},
+        {"name": "DASRI", "data": bsdasri_data},
+        {"name": "VHU", "data": bsvhu_data},
     ]
     for config in load_configs:
 

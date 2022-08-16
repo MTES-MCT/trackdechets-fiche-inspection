@@ -7,10 +7,9 @@ from os import getenv
 import dash
 import dash_bootstrap_components as dbc
 from app.layout.layout_factory import get_layout
-from app.data.data import *
-
 import dash_auth
 
+locale.setlocale(locale.LC_ALL, "fr_fr")
 
 auth_data = {"trackdechets": getenv("APP_PASSWORD")}
 external_scripts = ["https://cdn.plot.ly/plotly-locale-fr-latest.js"]

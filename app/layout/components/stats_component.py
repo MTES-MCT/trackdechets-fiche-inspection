@@ -178,7 +178,7 @@ class StatsComponent:
             outgoing_bar_classname = "sc-bar-consumed-error"
         else:
             style_outgoing_bar = {"gridColumn": f"1 / {max(self.fraction_outgoing,2)}"}
-            style_stock_bar = {"gridColumn": f"{self.fraction_outgoing+5} / 111"}
+            style_stock_bar = {"gridColumn": f"{self.fraction_outgoing+2} / 102"}
             outgoing_bar_classname = "sc-bar-consumed"
 
         self.component_layout.append(

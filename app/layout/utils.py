@@ -2,8 +2,6 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 import pandas as pd
 
-import app.data.data
-
 
 def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):
     text_class = "number-text" if number else "fr-callout__text"
