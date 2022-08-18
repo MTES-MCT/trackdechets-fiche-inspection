@@ -6,14 +6,21 @@ from zoneinfo import ZoneInfo
 import dash_bootstrap_components as dbc
 import pandas as pd
 
-from app.data.data_extract import make_query
+from app.data.data_extract import load_departements_data, make_query
 from dash import Input, Output, State, callback, dcc, html, no_update
 from dash.exceptions import PreventUpdate
+
+from .components.stats_component import StorageStatsComponent
 from .components.company_component import CompanyComponent
-from app.layout.components.figure_component import BSRefusalsComponent
+from app.layout.components.figure_component import (
+    BSRefusalsComponent,
+    WasteOrigineComponent,
+)
 from app.layout.components_factory import create_bs_components_layouts
 
 logger = logging.getLogger()
+
+DEPARTEMENTS_DATA = load_departements_data()
 
 
 def get_layout() -> html.Main:
@@ -163,6 +170,13 @@ Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, m
                             dbc.Col(id="complementary-info", width=3),
                         ]
                     ),
+                    dbc.Row([html.H2("Déchets sur site (théorique)")]),
+                    dbc.Row(
+                        [
+                            dbc.Col(width=3, id="waste-stock"),
+                            dbc.Col(width=3, id="waste-origins"),
+                        ]
+                    ),
                 ],
             ),
             dcc.Store(id="company-data"),
@@ -171,6 +185,7 @@ Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, m
             dcc.Store(id="bsff-data"),
             dcc.Store(id="bsdasri-data"),
             dcc.Store(id="bsvhu-data"),
+            dcc.Store(id="departements-data"),
         ]
     )
     return layout
@@ -270,7 +285,7 @@ def get_company_data(n_clicks: int, siret: str):
     Output("general-infos", "style"),
     Input("company-data", "data"),
 )
-def create_company_header(company_data: str):
+def populate_company_header(company_data: str):
     company_data = json.loads(company_data)
     company_name = company_data["name"]
     today_date = datetime.now(tz=ZoneInfo("Europe/Paris")).strftime("%d %B %Y")
@@ -283,7 +298,7 @@ def create_company_header(company_data: str):
     Output("company-details", "children"),
     Input("company-data", "data"),
 )
-def create_company_details(company_data: str):
+def populate_company_details(company_data: str):
     company_data = json.loads(company_data)
 
     company_component = CompanyComponent(company_data=company_data)
@@ -298,7 +313,7 @@ def create_company_details(company_data: str):
     Input("company-data", "data"),
     Input("bsdd-data", "data"),
 )
-def create_bsdd_figures(company_data: str, bsdd_data: str):
+def populate_bsdd_components(company_data: str, bsdd_data: str):
 
     company_data = json.loads(company_data)
     siret = company_data["siret"]
@@ -345,7 +360,7 @@ def create_bsdd_figures(company_data: str, bsdd_data: str):
     Input("company-data", "data"),
     Input("bsda-data", "data"),
 )
-def create_bsda_figures(company_data: str, bsda_data: str):
+def populate_bsda_components(company_data: str, bsda_data: str):
 
     company_data = json.loads(company_data)
     siret = company_data["siret"]
@@ -393,7 +408,7 @@ def create_bsda_figures(company_data: str, bsda_data: str):
     Input("company-data", "data"),
     Input("bsff-data", "data"),
 )
-def create_bsff_figures(company_data: str, bsff_data: str):
+def populate_bsff_components(company_data: str, bsff_data: str):
 
     company_data = json.loads(company_data)
     siret = company_data["siret"]
@@ -434,7 +449,7 @@ def create_bsff_figures(company_data: str, bsff_data: str):
     Input("company-data", "data"),
     Input("bsdasri-data", "data"),
 )
-def create_bsdasri_figures(company_data: str, bsdasri_data: str):
+def populate_bsdasri_components(company_data: str, bsdasri_data: str):
 
     company_data = json.loads(company_data)
     siret = company_data["siret"]
@@ -475,7 +490,7 @@ def create_bsdasri_figures(company_data: str, bsdasri_data: str):
     Input("company-data", "data"),
     Input("bsvhu-data", "data"),
 )
-def create_bsvhu_figures(company_data: str, bsvhu_data: str):
+def populate_bsvhu_components(company_data: str, bsvhu_data: str):
 
     company_data = json.loads(company_data)
     siret = company_data["siret"]
@@ -520,7 +535,7 @@ def create_bsvhu_figures(company_data: str, bsvhu_data: str):
         Input("bsvhu-data", "data"),
     ),
 )
-def create_refusals_figure(
+def populate_refusals_figure_component(
     company_data: str,
     bsdd_data: str,
     bsda_data: str,
@@ -566,3 +581,71 @@ def create_refusals_figure(
     )
 
     return bs_refusals_component.create_layout()
+
+
+@callback(
+    output=(Output("waste-stock", "children"), Output("waste-origins", "children")),
+    inputs=(
+        Input("company-data", "data"),
+        Input("bsdd-data", "data"),
+        Input("bsda-data", "data"),
+        Input("bsff-data", "data"),
+        Input("bsdasri-data", "data"),
+        Input("bsvhu-data", "data"),
+    ),
+)
+def populate_onsite_waste_components(
+    company_data: str,
+    bsdd_data: str,
+    bsda_data: str,
+    bsff_data: str,
+    bsdasri_data: str,
+    bsvhu_data: str,
+):
+    company_data = json.loads(company_data)
+    siret = company_data["siret"]
+
+    dfs = {}
+    load_configs = [
+        {"name": "Déchets Dangereux", "data": bsdd_data},
+        {"name": "Amiante", "data": bsda_data},
+        {"name": "Fluides Frigo", "data": bsff_data},
+        {"name": "DASRI", "data": bsdasri_data},
+        {"name": "VHU", "data": bsvhu_data},
+    ]
+    for config in load_configs:
+
+        name = config["name"]
+        data = config["data"]
+        if data is None:
+            continue
+        data_df = data[list(data.keys())[0]]
+        bs_data_df = pd.read_json(
+            data_df,
+            dtype={
+                "emitterCompanySiret": str,
+                "recipientCompanySiret": str,
+                "wasteDetailsQuantity": float,
+                "quantityReceived": float,
+            },
+            convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
+        )
+        dfs[name] = bs_data_df
+
+    storage_stats_component = StorageStatsComponent(
+        component_title="Déchets entreposés sur site actuellement",
+        company_siret=siret,
+        bs_data_dfs=dfs,
+    )
+
+    waste_origin_component = WasteOrigineComponent(
+        component_title="Origine des déchets",
+        company_siret=siret,
+        bs_data_dfs=dfs,
+        departements_df=DEPARTEMENTS_DATA,
+    )
+
+    return (
+        storage_stats_component.create_layout(),
+        waste_origin_component.create_layout(),
+    )

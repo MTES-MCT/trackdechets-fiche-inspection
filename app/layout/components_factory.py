@@ -3,7 +3,7 @@ from app.layout.components.figure_component import (
     BSCreatedAndRevisedComponent,
     StockComponent,
 )
-from app.layout.components.stats_component import StatsComponent
+from app.layout.components.stats_component import BSStatsComponent
 import pandas as pd
 
 
@@ -28,7 +28,7 @@ def create_bs_components_layouts(
     )
     stock_component_layout = stock_component.create_layout()
 
-    annual_stats_component = StatsComponent(
+    annual_stats_component = BSStatsComponent(
         component_title=component_titles[2],
         company_siret=siret,
         bs_data=bs_data,

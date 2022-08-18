@@ -5,10 +5,12 @@ select
     "receivedAt",
     "processedAt",
     "emitterCompanySiret",
+    "emitterCompanyAddress",
     "recipientCompanySiret",
     "ownerId",
     "wasteDetailsQuantity",
     "quantityReceived",
+    "wasteDetailsCode" as "wasteCode",
     "status"
  from
     "default$default"."Form" f

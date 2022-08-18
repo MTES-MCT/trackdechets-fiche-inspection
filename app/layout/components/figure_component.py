@@ -1,37 +1,24 @@
+import logging
 from datetime import datetime, timedelta
-from typing import Dict, List
-from dash import html, dcc
+from typing import Dict, List, final
+from functools import reduce
+
 import pandas as pd
 import plotly.graph_objects as go
-import logging
+from dash import dcc, html
+
+from .base_component import BaseComponent
 
 logger = logging.getLogger()
 
 
-class FigureComponent:
+class FigureComponent(BaseComponent):
     def __init__(self, component_title: str, company_siret: str) -> None:
-        self.component_title = component_title
-        self.company_siret = company_siret
+        super().__init__(component_title, company_siret)
 
         self.figure = None
 
         self.component_layout = []
-
-    def _add_component_title(self) -> html.Div:
-        self.component_layout.append(
-            html.Div(
-                self.component_title,
-                className="fc-title",
-            )
-        )
-
-    def _add_empty_figure_block(self) -> None:
-        self.component_layout.append(
-            html.Div(
-                f"PAS DE DONNEES POUR LE SIRET {self.company_siret}",
-                className="fc-empty-figure-block",
-            )
-        )
 
     def _add_figure_block(self) -> None:
 
@@ -45,14 +32,11 @@ class FigureComponent:
     def _create_figure(self) -> None:
         raise NotImplementedError
 
-    def _check_data_empty(self) -> bool:
-        raise NotImplementedError
-
     def create_layout(self) -> list:
         self._add_component_title()
 
         if self._check_data_empty():
-            self._add_empty_figure_block()
+            self._add_empty_block()
             return self.component_layout
 
         self._add_figure_block()
@@ -242,7 +226,7 @@ class StockComponent(FigureComponent):
 
         fig.update_layout(
             margin={"t": 20},
-            legend={"orientation": "h", "y": -0.05, "x": 0.5},
+            legend={"orientation": "h", "y": -0.1, "x": 0.5},
             legend_font_size=11,
         )
         fig.update_xaxes(
@@ -280,17 +264,24 @@ class BSRefusalsComponent(FigureComponent):
 
     def _check_data_empty(self) -> bool:
 
-        for df in self.preprocessed_series.values():
+        if self.preprocessed_series is None:
+            return True
 
-            if (df is not None) and (len(df) == 0):
+        for serie in self.preprocessed_series.values():
+
+            if (serie is not None) and (len(serie) != 0) and (serie != 0).any():
                 return False
 
         return True
 
     def _preprocess_data(self) -> None:
         def compute_perc_refusals(df: pd.DataFrame):
-
-            return len(df[df["status"] == "REFUSED"]) / len(df)
+            df = df.copy()
+            if len(df) == 0:
+                return 0
+            df_refused = df[df["status"] == "REFUSED"]
+            res = len(df_refused) / len(df)
+            return res
 
         preprocessed_series = {}
         for name, df in self.bs_data_dfs.items():
@@ -312,15 +303,16 @@ class BSRefusalsComponent(FigureComponent):
         for name, serie in self.preprocessed_series.items():
 
             trace = go.Scatter(x=serie.index, y=serie, name=name, mode="lines+markers")
-            mins.append(serie.min())
+            mins.append(serie.index.min())
             traces.append(trace)
 
         fig = go.Figure(traces)
 
         fig.update_layout(
             margin={"t": 20},
-            legend={"orientation": "h", "y": -0.05, "x": 0.5},
+            legend={"orientation": "h", "y": -0.1, "x": 0.5},
             legend_font_size=11,
+            showlegend=True,
         )
         fig.update_xaxes(
             tickangle=0,
@@ -334,6 +326,101 @@ class BSRefusalsComponent(FigureComponent):
     def create_layout(self) -> list:
 
         self._preprocess_data()
+        super().create_layout()
+
+        return self.component_layout
+
+
+class WasteOrigineComponent(FigureComponent):
+    def __init__(
+        self,
+        component_title: str,
+        company_siret: str,
+        bs_data_dfs: Dict[str, pd.DataFrame],
+        departements_df: pd.DataFrame,
+    ) -> None:
+        super().__init__(component_title, company_siret)
+        self.bs_data_dfs = bs_data_dfs
+        self.departments_df = departements_df
+
+        self.preprocessed_serie = None
+
+    def _preprocess_bs_data(self) -> None:
+
+        preprocessed_series = []
+        for df in self.bs_data_dfs.values():
+
+            df["cp"] = (
+                df["emitterCompanyAddress"]
+                .str.extract(r"([0-9]{5})", expand=False)
+                .str[:2]
+            )
+            df = df.join(self.departments_df, on="cp")
+            df["cp_formatted"] = df["LIBELLE"] + " (" + df["cp"] + ")"
+            serie = (
+                df[df["recipientCompanySiret"] == self.company_siret]
+                .groupby("cp_formatted")["quantityReceived"]
+                .sum()
+            )
+            preprocessed_series.append(serie)
+
+        sum_serie: pd.Series = reduce(lambda x, y: x.add(y), preprocessed_series)
+
+        for serie in preprocessed_series:
+            sum_serie = sum_serie.fillna(serie)
+
+        sum_serie.sort_values(ascending=False, inplace=True)
+
+        final_serie = sum_serie[:5]
+        final_serie["Autres origines"] = sum_serie[5:].sum()
+
+        self.preprocessed_serie = final_serie
+
+    def _check_data_empty(self) -> bool:
+
+        if self.preprocessed_serie.isna().all() or len(self.preprocessed_serie) == 0:
+            return True
+
+        return False
+
+    def _create_figure(self) -> None:
+
+        # Prepare order for horizontal bar chart, preserving "Autre origines" has bottom bar
+        serie = pd.concat(
+            (self.preprocessed_serie[-1:], self.preprocessed_serie[-2::-1])
+        )
+        serie = serie.round(1)
+
+        # The bar chart has invisible bar (at *_annot positions) that will hold the labels
+        y_cats = [tup_e for e in serie.index for tup_e in (e, e + "_annot")]
+        values = [tup_e for _, e in serie.items() for tup_e in (e, 0)]
+        texts = [
+            tup_e
+            for index, value in serie.items()
+            for tup_e in ("", f"<b>{value}t</b> - {index}")
+        ]
+        bar_trace = go.Bar(
+            x=values,
+            y=y_cats,
+            orientation="h",
+            text=texts,
+            textfont_size=30,
+            textposition="outside",
+            width=[tup_e for e in values for tup_e in (0.7, 1)],
+        )
+
+        fig = go.Figure([bar_trace])
+        fig.update_xaxes(visible=False)
+        fig.update_yaxes(visible=False, type="category")
+        fig.update_layout(
+            margin={"t": 20, "b": 0, "l": 0, "r": 0},
+        )
+
+        self.figure = fig
+
+    def create_layout(self) -> list:
+
+        self._preprocess_bs_data()
         super().create_layout()
 
         return self.component_layout

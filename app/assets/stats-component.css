@@ -91,3 +91,34 @@
     grid-row:span 2 / 6;
     text-align: right;
 }
+
+.sc-stock-item {
+    display: flex;
+    flex-direction: row;
+    margin: 25px 0;
+    justify-content: flex-start;
+    align-items: end;
+}
+
+.sc-quantity-value {
+    font-size: 1.7em;
+    min-width: 35%;
+    margin-right: 15px;
+}
+
+
+#sc-total-stock {
+    margin: 45px 0;
+}
+
+#sc-total-stock span {
+    font-size: 4em;
+    font-weight: 300;
+    margin-right: 15px;
+}
+
+#sc-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}

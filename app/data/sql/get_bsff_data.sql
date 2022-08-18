@@ -5,9 +5,11 @@ select
     "destinationReceptionDate" as "receivedAt",
     "destinationOperationSignatureDate" as "processedAt",
     "emitterCompanySiret",
+    "emitterCompanyAddress",
     "destinationCompanySiret" as "recipientCompanySiret",
     "weightValue" as "wasteDetailsQuantity",
     "destinationReceptionWeight" as "quantityReceived",
+    "wasteCode",
     "status"
 from
     "default$default"."Bsff" 

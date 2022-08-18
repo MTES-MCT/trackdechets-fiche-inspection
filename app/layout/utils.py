@@ -58,5 +58,6 @@ def add_figure(fig, fig_id: str) -> dbc.Row:
     return row
 
 
-def format_number_str(input_number) -> str:
-    return "{:,.0f}".format(input_number).replace(",", " ")
+def format_number_str(input_number: float, precision: int = 2) -> str:
+    input_number = round(input_number, precision)
+    return "{:,f}".format(input_number).replace(",", " ")

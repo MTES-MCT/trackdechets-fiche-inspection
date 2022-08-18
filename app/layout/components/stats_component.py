@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta
+from typing import Dict
 
 import numpy as np
 import pandas as pd
+from .base_component import BaseComponent
 from app.layout.utils import format_number_str
 from dash import html
 
 
-class StatsComponent:
+class BSStatsComponent(BaseComponent):
     def __init__(
         self,
         component_title: str,
@@ -15,12 +17,10 @@ class StatsComponent:
         bs_revised_data: pd.DataFrame = None,
     ) -> None:
 
-        self.component_title = component_title
-        self.company_siret = company_siret
+        super().__init__(component_title, company_siret)
+
         self.bs_data = bs_data
         self.bs_revised_data = bs_revised_data
-
-        self.component_layout = []
 
         self.emitted_bs_count = None
         self.archived_bs_count = None
@@ -30,14 +30,6 @@ class StatsComponent:
         self.total_outgoing_weight = None
         self.theorical_stock = None
         self.fraction_outgoing = None
-
-    def _add_component_title(self) -> html.Div:
-        self.component_layout.append(
-            html.Div(
-                self.component_title,
-                className="sc-title",
-            )
-        )
 
     def _check_empty_data(self) -> bool:
 
@@ -51,14 +43,6 @@ class StatsComponent:
         ):
             return True
         return False
-
-    def _add_empty_block(self) -> None:
-        self.component_layout.append(
-            html.Div(
-                f"PAS DE DONNEES POUR LE SIRET {self.company_siret}",
-                className="fc-empty-figure-block",
-            )
-        )
 
     def _create_stats(self) -> None:
 
@@ -233,6 +217,91 @@ class StatsComponent:
             return self.component_layout
 
         self._create_stats()
+        self._add_stats()
+
+        return self.component_layout
+
+
+class StorageStatsComponent(BaseComponent):
+    def __init__(
+        self,
+        component_title: str,
+        company_siret: str,
+        bs_data_dfs: Dict[str, pd.DataFrame],
+    ) -> None:
+
+        super().__init__(component_title, company_siret)
+
+        self.bs_data_dfs = bs_data_dfs
+
+        self.stock_by_waste_code = None
+        self.total_stock = None
+
+    def _preprocess_data(self) -> pd.Series:
+
+        siret = self.company_siret
+
+        dfs_to_concat = [df for df in self.bs_data_dfs.values()]
+        df = pd.concat(dfs_to_concat)
+
+        emitted_mask = (df.emitterCompanySiret == siret) & ~df.sentAt.isna()
+        received_mask = (df.recipientCompanySiret == siret) & ~df.receivedAt.isna()
+        emitted = df[emitted_mask].groupby("wasteCode")["wasteDetailsQuantity"].sum()
+        received = df[received_mask].groupby("wasteCode")["quantityReceived"].sum()
+
+        stock_by_waste_code: pd.Series = (
+            (-emitted + received).fillna(-emitted).fillna(received)
+        )
+        stock_by_waste_code.sort_values(ascending=False, inplace=True)
+
+        total_stock = stock_by_waste_code.sum()
+
+        self.stock_by_waste_code = stock_by_waste_code
+        self.total_stock = total_stock
+
+    def _check_empty_data(self) -> bool:
+        if (
+            len(self.stock_by_waste_code) == 0
+        ) or self.stock_by_waste_code.isna().all():
+            return True
+
+        return False
+
+    def _add_stats(self):
+
+        tops_divs = []
+        for code, quantity in self.stock_by_waste_code.head(4).items():
+            tops_divs.append(
+                html.Div(
+                    [
+                        html.Div(f"{quantity:.2f}t", className="sc-quantity-value"),
+                        html.Div(code, className="sc-waste-code"),
+                    ],
+                    className="sc-stock-item",
+                )
+            )
+
+        self.component_layout.append(
+            html.Div(
+                [
+                    html.Div(
+                        [html.Span(f"{self.total_stock:.0f}t"), "de déchets dangereux"],
+                        id="sc-total-stock",
+                    ),
+                    html.Div(tops_divs, id="sc-top-waste-codes"),
+                ],
+                id="sc-content",
+            )
+        )
+
+    def create_layout(self) -> list:
+        self._add_component_title()
+        self._preprocess_data()
+
+        if self._check_empty_data():
+            self._add_empty_block()
+            return self.component_layout
+
         self._add_stats()
 
         return self.component_layout
