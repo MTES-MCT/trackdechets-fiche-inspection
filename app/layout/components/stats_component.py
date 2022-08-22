@@ -4,7 +4,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 from .base_component import BaseComponent
-from app.layout.utils import format_number_str
+from .utils import format_number_str
 from dash import html
 
 
@@ -41,7 +41,10 @@ class BSStatsComponent(BaseComponent):
         if (len(bs_data) == 0) and (
             (bs_revised_data is None) or (len(bs_revised_data) == 0)
         ):
+            self.is_component_empty = True
             return True
+
+        self.is_component_empty = False
         return False
 
     def _create_stats(self) -> None:
@@ -102,7 +105,7 @@ class BSStatsComponent(BaseComponent):
                     html.P(
                         [
                             html.Span(
-                                [format_number_str(self.emitted_bs_count)],
+                                [format_number_str(self.emitted_bs_count, precision=0)],
                                 className="sc-xl-number",
                             ),
                             "émis",
@@ -119,7 +122,11 @@ class BSStatsComponent(BaseComponent):
                     html.P(
                         [
                             html.Span(
-                                [format_number_str(self.archived_bs_count)],
+                                [
+                                    format_number_str(
+                                        self.archived_bs_count, precision=0
+                                    )
+                                ],
                                 className="sc-large-number",
                             ),
                             "archivés",
@@ -128,7 +135,7 @@ class BSStatsComponent(BaseComponent):
                     html.P(
                         [
                             html.Span(
-                                [format_number_str(self.revised_bs_count)],
+                                [format_number_str(self.revised_bs_count, precision=0)],
                                 className="sc-large-number",
                             ),
                             "corrigés",
@@ -137,7 +144,11 @@ class BSStatsComponent(BaseComponent):
                     html.P(
                         [
                             html.Span(
-                                [format_number_str(self.more_than_one_month_bs_count)],
+                                [
+                                    format_number_str(
+                                        self.more_than_one_month_bs_count, precision=0
+                                    )
+                                ],
                                 className="sc-large-number",
                             ),
                             "réponses supérieures à un mois",
@@ -263,8 +274,10 @@ class StorageStatsComponent(BaseComponent):
         if (
             len(self.stock_by_waste_code) == 0
         ) or self.stock_by_waste_code.isna().all():
+            self.is_component_empty = True
             return True
 
+        self.is_component_empty = False
         return False
 
     def _add_stats(self):

@@ -6,7 +6,11 @@ from zoneinfo import ZoneInfo
 import dash_bootstrap_components as dbc
 import pandas as pd
 
-from app.data.data_extract import load_departements_data, make_query
+from app.data.data_extract import (
+    load_and_preprocess_regions_geographical_data,
+    load_departements_regions_data,
+    make_query,
+)
 from dash import Input, Output, State, callback, dcc, html, no_update
 from dash.exceptions import PreventUpdate
 
@@ -14,13 +18,15 @@ from .components.stats_component import StorageStatsComponent
 from .components.company_component import CompanyComponent
 from app.layout.components.figure_component import (
     BSRefusalsComponent,
-    WasteOrigineComponent,
+    WasteOriginsComponent,
+    WasteOriginsMapComponent,
 )
 from app.layout.components_factory import create_bs_components_layouts
 
 logger = logging.getLogger()
 
-DEPARTEMENTS_DATA = load_departements_data()
+DEPARTEMENTS_REGION_DATA = load_departements_regions_data()
+REGIONS_GEODATA = load_and_preprocess_regions_geographical_data()
 
 
 def get_layout() -> html.Main:
@@ -175,6 +181,7 @@ Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, m
                         [
                             dbc.Col(width=3, id="waste-stock"),
                             dbc.Col(width=3, id="waste-origins"),
+                            dbc.Col(width=3, id="waste-origins-map"),
                         ]
                     ),
                 ],
@@ -584,7 +591,11 @@ def populate_refusals_figure_component(
 
 
 @callback(
-    output=(Output("waste-stock", "children"), Output("waste-origins", "children")),
+    output=(
+        Output("waste-stock", "children"),
+        Output("waste-origins", "children"),
+        Output("waste-origins-map", "children"),
+    ),
     inputs=(
         Input("company-data", "data"),
         Input("bsdd-data", "data"),
@@ -638,14 +649,23 @@ def populate_onsite_waste_components(
         bs_data_dfs=dfs,
     )
 
-    waste_origin_component = WasteOrigineComponent(
+    waste_origins_component = WasteOriginsComponent(
         component_title="Origine des déchets",
         company_siret=siret,
         bs_data_dfs=dfs,
-        departements_df=DEPARTEMENTS_DATA,
+        departements_regions_df=DEPARTEMENTS_REGION_DATA,
+    )
+
+    waste_origins_map_component = WasteOriginsMapComponent(
+        component_title="Origine des déchets",
+        company_siret=siret,
+        bs_data_dfs=dfs,
+        departements_regions_df=DEPARTEMENTS_REGION_DATA,
+        regions_geodata=REGIONS_GEODATA,
     )
 
     return (
         storage_stats_component.create_layout(),
-        waste_origin_component.create_layout(),
+        waste_origins_component.create_layout(),
+        waste_origins_map_component.create_layout(),
     )

@@ -1,11 +1,15 @@
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, final
 from functools import reduce
 
+import geopandas as gpd
 import pandas as pd
 import plotly.graph_objects as go
 from dash import dcc, html
+
+from .utils import get_code_departement
 
 from .base_component import BaseComponent
 
@@ -87,8 +91,10 @@ class BSCreatedAndRevisedComponent(FigureComponent):
         bs_revised_by_month = self.bs_revised_by_month
 
         if len(bs_emitted_by_month) == 0 and bs_revised_by_month is None:
+            self.is_component_empty = True
             return True
 
+        self.is_component_empty = False
         return False
 
     def _create_figure(self) -> None:
@@ -193,11 +199,14 @@ class StockComponent(FigureComponent):
         outgoing_data_by_month = self.outgoing_data_by_month
 
         if len(incoming_data_by_month) == len(outgoing_data_by_month) == 0:
+            self.is_component_empty = True
             return True
 
         if incoming_data_by_month.isna().all() and outgoing_data_by_month.isna().all():
+            self.is_component_empty = True
             return True
 
+        self.is_component_empty = False
         return False
 
     def _create_figure(self) -> None:
@@ -265,13 +274,15 @@ class BSRefusalsComponent(FigureComponent):
     def _check_data_empty(self) -> bool:
 
         if self.preprocessed_series is None:
+            self.is_component_empty = True
             return True
 
         for serie in self.preprocessed_series.values():
 
             if (serie is not None) and (len(serie) != 0) and (serie != 0).any():
+                self.is_component_empty = False
                 return False
-
+        self.is_component_empty = True
         return True
 
     def _preprocess_data(self) -> None:
@@ -331,17 +342,17 @@ class BSRefusalsComponent(FigureComponent):
         return self.component_layout
 
 
-class WasteOrigineComponent(FigureComponent):
+class WasteOriginsComponent(FigureComponent):
     def __init__(
         self,
         component_title: str,
         company_siret: str,
         bs_data_dfs: Dict[str, pd.DataFrame],
-        departements_df: pd.DataFrame,
+        departements_regions_df: pd.DataFrame,
     ) -> None:
         super().__init__(component_title, company_siret)
         self.bs_data_dfs = bs_data_dfs
-        self.departments_df = departements_df
+        self.departements_regions_df = departements_regions_df
 
         self.preprocessed_serie = None
 
@@ -350,13 +361,22 @@ class WasteOrigineComponent(FigureComponent):
         preprocessed_series = []
         for df in self.bs_data_dfs.values():
 
-            df["cp"] = (
-                df["emitterCompanyAddress"]
-                .str.extract(r"([0-9]{5})", expand=False)
-                .str[:2]
+            df["cp"] = df["emitterCompanyAddress"].str.extract(
+                r"([0-9]{5})", expand=False
             )
-            df = df.join(self.departments_df, on="cp")
-            df["cp_formatted"] = df["LIBELLE"] + " (" + df["cp"] + ")"
+            df["code_dep"] = df["cp"].apply(get_code_departement)
+            df = pd.merge(
+                df,
+                self.departements_regions_df,
+                left_on="code_dep",
+                right_on="DEP",
+                how="left",
+                validate="many_to_one",
+            )
+            df.loc[~df["code_dep"].isna(), "cp_formatted"] = (
+                df["LIBELLE_dep"] + " (" + df["code_dep"] + ")"
+            )
+            df.loc[df["code_dep"].isna(), "cp_formatted"] = "Origine inconnue"
             serie = (
                 df[df["recipientCompanySiret"] == self.company_siret]
                 .groupby("cp_formatted")["quantityReceived"]
@@ -373,14 +393,18 @@ class WasteOrigineComponent(FigureComponent):
 
         final_serie = sum_serie[:5]
         final_serie["Autres origines"] = sum_serie[5:].sum()
+        final_serie = final_serie.round(2)
+        final_serie = final_serie[final_serie > 0]
 
         self.preprocessed_serie = final_serie
 
     def _check_data_empty(self) -> bool:
 
         if self.preprocessed_serie.isna().all() or len(self.preprocessed_serie) == 0:
+            self.is_component_empty = True
             return True
 
+        self.is_component_empty = False
         return False
 
     def _create_figure(self) -> None:
@@ -389,7 +413,6 @@ class WasteOrigineComponent(FigureComponent):
         serie = pd.concat(
             (self.preprocessed_serie[-1:], self.preprocessed_serie[-2::-1])
         )
-        serie = serie.round(1)
 
         # The bar chart has invisible bar (at *_annot positions) that will hold the labels
         y_cats = [tup_e for e in serie.index for tup_e in (e, e + "_annot")]
@@ -404,7 +427,7 @@ class WasteOrigineComponent(FigureComponent):
             y=y_cats,
             orientation="h",
             text=texts,
-            textfont_size=30,
+            textfont_size=20,
             textposition="outside",
             width=[tup_e for e in values for tup_e in (0.7, 1)],
         )
@@ -414,6 +437,118 @@ class WasteOrigineComponent(FigureComponent):
         fig.update_yaxes(visible=False, type="category")
         fig.update_layout(
             margin={"t": 20, "b": 0, "l": 0, "r": 0},
+        )
+
+        self.figure = fig
+
+    def create_layout(self) -> list:
+
+        self._preprocess_bs_data()
+        super().create_layout()
+
+        return self.component_layout
+
+
+class WasteOriginsMapComponent(FigureComponent):
+    def __init__(
+        self,
+        component_title: str,
+        company_siret: str,
+        bs_data_dfs: Dict[str, pd.DataFrame],
+        departements_regions_df: pd.DataFrame,
+        regions_geodata: gpd.GeoDataFrame,
+    ) -> None:
+        super().__init__(component_title, company_siret)
+
+        self.bs_data_dfs = bs_data_dfs
+        self.departements_regions_df = departements_regions_df
+        self.regions_geodata = regions_geodata
+
+        self.preprocessed_df = None
+
+    def _preprocess_bs_data(self) -> None:
+
+        concat_df = pd.concat(list(self.bs_data_dfs.values()))
+
+        concat_df["cp"] = concat_df["emitterCompanyAddress"].str.extract(
+            r"([0-9]{5})", expand=False
+        )
+        concat_df["code_dep"] = concat_df["cp"].apply(get_code_departement)
+        concat_df = pd.merge(
+            concat_df,
+            self.departements_regions_df,
+            left_on="code_dep",
+            right_on="DEP",
+            how="left",
+            validate="many_to_one",
+        )
+        df_grouped = concat_df.groupby("LIBELLE_reg").aggregate(
+            {"quantityReceived": "sum", "REG": "max"}
+        )
+
+        final_df = pd.merge(
+            self.regions_geodata, df_grouped, left_on="code", right_on="REG", how="left"
+        )
+
+        final_df.fillna(0, inplace=True)
+
+        self.preprocessed_df = final_df
+
+    def _check_data_empty(self) -> bool:
+
+        if (
+            self.preprocessed_df["quantityReceived"].isna().all()
+            or len(self.preprocessed_df) == 0
+        ):
+            self.is_component_empty = True
+            return True
+
+        self.is_component_empty = False
+        return False
+
+    def _create_figure(self) -> None:
+
+        gdf = self.preprocessed_df
+        geojson = json.loads(gdf.to_json())
+        trace = go.Choropleth(
+            geojson=geojson,
+            z=[0] * len(gdf["quantityReceived"]),
+            locations=gdf.index,
+            locationmode="geojson-id",
+            colorscale=["#F9F8F6", "#F9F8F6"],
+            marker_line_color="#979797",
+            hoverinfo="skip",
+            showscale=False,
+        )
+
+        sizeref = 2.0 * max(gdf["quantityReceived"]) / (10**2)
+
+        gdf_nonzero = gdf[gdf["quantityReceived"] != 0]
+        trace_2 = go.Scattergeo(
+            geojson=geojson,
+            locations=gdf_nonzero.index,
+            locationmode="geojson-id",
+            lat=gdf_nonzero.geometry.centroid.y,
+            lon=gdf_nonzero.geometry.centroid.x,
+            marker_sizeref=sizeref,
+            marker_size=gdf_nonzero["quantityReceived"],
+            marker_sizemin=3,
+            mode="markers+text",
+            hovertext=[
+                f"{e.nom} - <b>{e.quantityReceived:.0f}t</b>"
+                for e in gdf_nonzero.itertuples()
+            ],
+            hoverinfo="text",
+            marker_color="#518FFF",
+        )
+
+        fig = go.Figure([trace, trace_2])
+        fig.update_layout(margin={"b": 0, "t": 0, "r": 0, "l": 0}, showlegend=False)
+        fig.update_geos(
+            fitbounds="locations",
+            visible=False,
+            showframe=False,
+            projection_type="mercator",
         )
 
         self.figure = fig

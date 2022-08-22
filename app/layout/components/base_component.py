@@ -6,6 +6,7 @@ class BaseComponent:
         self.component_title = component_title
         self.company_siret = company_siret
 
+        self.is_component_empty = None
         self.component_layout = []
 
     def _add_component_title(self) -> html.Div:

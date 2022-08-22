@@ -16,11 +16,16 @@ gunicorn = "*"
 python-dotenv = "*"
 datetime = "*"
 dash-auth = "*"
+fiona = "*"
+geopandas = "*"
+matplotlib = "*"
 
 [dev-packages]
 jupyter = "*"
 black = "*"
 ipython = "*"
+folium = "*"
+mapclassify = "*"
 
 [requires]
 python_version = "3.10"

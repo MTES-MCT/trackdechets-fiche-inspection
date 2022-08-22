@@ -1,8 +1,10 @@
+import os
 from pathlib import Path
 from typing import List
-from sqlalchemy import create_engine
-import os
+
+import geopandas as gpd
 import pandas as pd
+from sqlalchemy import create_engine
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 SQL_ENGINE = create_engine(DATABASE_URL)
@@ -28,13 +30,23 @@ def make_query(
     return df
 
 
-def load_departements_data() -> pd.DataFrame:
+def load_departements_regions_data() -> pd.DataFrame:
 
-    df = pd.read_csv(
-        STATIC_FILES_PATH / "departement_2022.csv", dtype="str", index_col="DEP"
+    df_departements = pd.read_csv(
+        STATIC_FILES_PATH / "departement_2022.csv", dtype="str"
+    )
+    df_regions = pd.read_csv(STATIC_FILES_PATH / "region_2022.csv", dtype="str")
+    dep_reg = pd.merge(
+        df_departements,
+        df_regions,
+        left_on="REG",
+        right_on="REG",
+        how="left",
+        validate="many_to_one",
+        suffixes=("_dep", "_reg"),
     )
 
-    return df
+    return dep_reg
 
 
 def load_waste_code_data() -> pd.DataFrame:
@@ -45,3 +57,26 @@ def load_waste_code_data() -> pd.DataFrame:
     assert df.index.is_unique()
 
     return df
+
+
+def load_and_preprocess_regions_geographical_data() -> gpd.GeoDataFrame:
+
+    gdf = gpd.read_file(
+        "/Users/luis/projects/entropeak/trackdechets/trackdechets-fiche-inspection/app/data/static/regions.geojson"
+    )
+
+    translations = {
+        "Guadeloupe": {"x": 55, "y": 30, "scale": 1.5},
+        "Martinique": {"x": 56, "y": 31, "scale": 1.5},
+        "La Réunion": {"x": -62, "y": 63, "scale": 1.5},
+        "Mayotte": {"x": -50.5, "y": 54, "scale": 1.5},
+        "Guyane": {"x": 47, "y": 40, "scale": 0.5},
+    }
+    for region, translation in translations.items():
+        gdf.loc[gdf["nom"] == region, "geometry"] = (
+            gdf.loc[gdf["nom"] == region, "geometry"]
+            .translate(xoff=translation["x"], yoff=translation["y"], zoff=0.0)
+            .scale(*(translation["scale"],) * 3)
+        )
+
+    return gdf
