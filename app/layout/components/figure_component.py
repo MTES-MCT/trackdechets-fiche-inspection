@@ -3,13 +3,14 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, final
 from functools import reduce
+from zoneinfo import ZoneInfo
 
 import geopandas as gpd
 import pandas as pd
 import plotly.graph_objects as go
 from dash import dcc, html
 
-from .utils import get_code_departement
+from .utils import format_number_str, get_code_departement
 
 from .base_component import BaseComponent
 
@@ -175,10 +176,14 @@ class StockComponent(FigureComponent):
 
         bs_data = self.bs_data
         one_year_ago = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-01")
+        today_date = datetime.now(tz=ZoneInfo("Europe/Paris")).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
         incoming_data = bs_data[
             (bs_data["recipientCompanySiret"] == self.company_siret)
             & (bs_data["receivedAt"] >= one_year_ago)
+            & (bs_data["receivedAt"] <= today_date)
         ]
         outgoing_data = bs_data[
             (bs_data["emitterCompanySiret"] == self.company_siret)
@@ -214,21 +219,27 @@ class StockComponent(FigureComponent):
         incoming_data_by_month = self.incoming_data_by_month
         outgoing_data_by_month = self.outgoing_data_by_month
 
-        text_template = "%{x} - %{y:.0f} Tonnes"
-
         incoming_line = go.Scatter(
             x=incoming_data_by_month.index,
             y=incoming_data_by_month,
             name="Quantité entrante",
             mode="lines+markers",
-            hovertemplate=text_template,
+            hovertext=[
+                f"{index.month_name('fr_fr')} - <b>{format_number_str(e)}</b> tonnes"
+                for index, e in incoming_data_by_month.items()
+            ],
+            hoverinfo="text",
         )
         outgoing_line = go.Scatter(
             x=outgoing_data_by_month.index,
             y=outgoing_data_by_month,
             name="Quantité sortante",
             mode="lines+markers",
-            hovertemplate=text_template,
+            hovertext=[
+                f"{index.month_name('fr_fr')} - <b>{format_number_str(e)}</b> tonnes"
+                for index, e in incoming_data_by_month.items()
+            ],
+            hoverinfo="text",
         )
 
         fig = go.Figure(data=[incoming_line, outgoing_line])
@@ -237,6 +248,7 @@ class StockComponent(FigureComponent):
             margin={"t": 20},
             legend={"orientation": "h", "y": -0.1, "x": 0.5},
             legend_font_size=11,
+            showlegend=True,
         )
         fig.update_xaxes(
             tickangle=0,
@@ -313,7 +325,13 @@ class BSRefusalsComponent(FigureComponent):
         mins = []
         for name, serie in self.preprocessed_series.items():
 
-            trace = go.Scatter(x=serie.index, y=serie, name=name, mode="lines+markers")
+            trace = go.Scatter(
+                x=serie.index,
+                y=serie,
+                name=name,
+                mode="lines+markers",
+                hovertemplate="%{x|%B} - %{y:.2f}% de bordereaux refusés",
+            )
             mins.append(serie.index.min())
             traces.append(trace)
 
@@ -358,41 +376,35 @@ class WasteOriginsComponent(FigureComponent):
 
     def _preprocess_bs_data(self) -> None:
 
-        preprocessed_series = []
-        for df in self.bs_data_dfs.values():
+        concat_df = pd.concat(list(self.bs_data_dfs.values()))
 
-            df["cp"] = df["emitterCompanyAddress"].str.extract(
-                r"([0-9]{5})", expand=False
-            )
-            df["code_dep"] = df["cp"].apply(get_code_departement)
-            df = pd.merge(
-                df,
-                self.departements_regions_df,
-                left_on="code_dep",
-                right_on="DEP",
-                how="left",
-                validate="many_to_one",
-            )
-            df.loc[~df["code_dep"].isna(), "cp_formatted"] = (
-                df["LIBELLE_dep"] + " (" + df["code_dep"] + ")"
-            )
-            df.loc[df["code_dep"].isna(), "cp_formatted"] = "Origine inconnue"
-            serie = (
-                df[df["recipientCompanySiret"] == self.company_siret]
-                .groupby("cp_formatted")["quantityReceived"]
-                .sum()
-            )
-            preprocessed_series.append(serie)
+        concat_df["cp"] = concat_df["emitterCompanyAddress"].str.extract(
+            r"([0-9]{5})", expand=False
+        )
+        concat_df["code_dep"] = concat_df["cp"].apply(get_code_departement)
+        concat_df = pd.merge(
+            concat_df,
+            self.departements_regions_df,
+            left_on="code_dep",
+            right_on="DEP",
+            how="left",
+            validate="many_to_one",
+        )
 
-        sum_serie: pd.Series = reduce(lambda x, y: x.add(y), preprocessed_series)
+        concat_df.loc[~concat_df["code_dep"].isna(), "cp_formatted"] = (
+            concat_df["LIBELLE_dep"] + " (" + concat_df["code_dep"] + ")"
+        )
+        concat_df.loc[concat_df["code_dep"].isna(), "cp_formatted"] = "Origine inconnue"
+        serie = (
+            concat_df[concat_df["recipientCompanySiret"] == self.company_siret]
+            .groupby("cp_formatted")["quantityReceived"]
+            .sum()
+        )
 
-        for serie in preprocessed_series:
-            sum_serie = sum_serie.fillna(serie)
+        serie.sort_values(ascending=False, inplace=True)
 
-        sum_serie.sort_values(ascending=False, inplace=True)
-
-        final_serie = sum_serie[:5]
-        final_serie["Autres origines"] = sum_serie[5:].sum()
+        final_serie = serie[:5]
+        final_serie["Autres origines"] = serie[5:].sum()
         final_serie = final_serie.round(2)
         final_serie = final_serie[final_serie > 0]
 
@@ -420,7 +432,18 @@ class WasteOriginsComponent(FigureComponent):
         texts = [
             tup_e
             for index, value in serie.items()
-            for tup_e in ("", f"<b>{value}t</b> - {index}")
+            for tup_e in (
+                "",
+                f"<b>{format_number_str(value, precision=2)}t</b> - {index}",
+            )
+        ]
+        hovertexts = [
+            tup_e
+            for index, value in serie.items()
+            for tup_e in (
+                "",
+                f"{index} - <b>{format_number_str(value, precision=2)}t</b> reçues",
+            )
         ]
         bar_trace = go.Bar(
             x=values,
@@ -430,6 +453,7 @@ class WasteOriginsComponent(FigureComponent):
             textfont_size=20,
             textposition="outside",
             width=[tup_e for e in values for tup_e in (0.7, 1)],
+            hovertext=hovertexts,
         )
 
         fig = go.Figure([bar_trace])
@@ -482,8 +506,10 @@ class WasteOriginsMapComponent(FigureComponent):
             how="left",
             validate="many_to_one",
         )
-        df_grouped = concat_df.groupby("LIBELLE_reg").aggregate(
-            {"quantityReceived": "sum", "REG": "max"}
+        df_grouped = (
+            concat_df[concat_df["recipientCompanySiret"] == self.company_siret]
+            .groupby("LIBELLE_reg")
+            .aggregate({"quantityReceived": "sum", "REG": "max"})
         )
 
         final_df = pd.merge(
@@ -499,6 +525,7 @@ class WasteOriginsMapComponent(FigureComponent):
         if (
             self.preprocessed_df["quantityReceived"].isna().all()
             or len(self.preprocessed_df) == 0
+            or (self.preprocessed_df["quantityReceived"] == 0).all()
         ):
             self.is_component_empty = True
             return True
@@ -521,7 +548,7 @@ class WasteOriginsMapComponent(FigureComponent):
             showscale=False,
         )
 
-        sizeref = 2.0 * max(gdf["quantityReceived"]) / (10**2)
+        sizeref = 2.0 * max(gdf["quantityReceived"]) / (12**2)
 
         gdf_nonzero = gdf[gdf["quantityReceived"] != 0]
         trace_2 = go.Scattergeo(
@@ -535,7 +562,7 @@ class WasteOriginsMapComponent(FigureComponent):
             marker_sizemin=3,
             mode="markers+text",
             hovertext=[
-                f"{e.nom} - <b>{e.quantityReceived:.0f}t</b>"
+                f"{e.nom} - <b>{format_number_str(e.quantityReceived,precision=2)}t</b>"
                 for e in gdf_nonzero.itertuples()
             ],
             hoverinfo="text",

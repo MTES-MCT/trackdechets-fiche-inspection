@@ -265,6 +265,7 @@ class StorageStatsComponent(BaseComponent):
         )
         stock_by_waste_code.sort_values(ascending=False, inplace=True)
 
+        stock_by_waste_code = stock_by_waste_code[stock_by_waste_code > 0]
         total_stock = stock_by_waste_code.sum()
 
         self.stock_by_waste_code = stock_by_waste_code

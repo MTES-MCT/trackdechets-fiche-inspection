@@ -9,8 +9,3 @@ if __name__ == "__main__":
 
     # Scalingo requires 0.0.0.0 as host, instead of the default 127.0.0.1
     dash_app.run_server(debug=bool(getenv("DEVELOPMENT")), port=int(port))
-
-
-def format_number_str(input_number: float, precision: int = 2) -> str:
-    input_number = round(input_number, precision)
-    return "{:,}".format(input_number).replace(",", " ")
