@@ -82,7 +82,7 @@ class BSStatsComponent(BaseComponent):
         self.total_outgoing_weight = bs_data.loc[
             (bs_data["emitterCompanySiret"] == siret)
             & (bs_data["sentAt"] >= one_year_ago),
-            "wasteDetailsQuantity",
+            "quantityReceived",
         ].sum()
 
         if self.total_outgoing_weight != 0:
@@ -164,8 +164,8 @@ class BSStatsComponent(BaseComponent):
             incoming_weight_bar_classname += "-error"
 
         if (self.total_outgoing_weight == 0) or (self.fraction_outgoing is None):
-            style_outgoing_bar = None
-            style_stock_bar = None
+            style_outgoing_bar = {"gridColumn": "1 / 111"}
+            style_stock_bar = {"display": "none"}
             outgoing_bar_classname = "sc-bar-consumed-error"
         elif self.fraction_outgoing > 100:
             style_outgoing_bar = {"gridColumn": "1 / 111"}
@@ -182,7 +182,9 @@ class BSStatsComponent(BaseComponent):
                     html.P(
                         [
                             html.Span(
-                                [f"{self.total_incoming_weight:.1f}"],
+                                [
+                                    f"{format_number_str(self.total_incoming_weight, precision=1)}"
+                                ],
                                 className="sc-medium-number",
                             ),
                             "tonnes entrantes",
@@ -203,14 +205,20 @@ class BSStatsComponent(BaseComponent):
                     html.Div(
                         [
                             html.P(
-                                [f"{self.total_outgoing_weight:.1f} tonnes sortantes"]
+                                [
+                                    f"{format_number_str(self.total_outgoing_weight, precision=1)} tonnes sortantes"
+                                ]
                             )
                         ],
                         className="sc-bar-number-outgoing",
                     ),
                     html.Div(
                         [
-                            html.P([f"{self.theorical_stock:.1f} tonnes"]),
+                            html.P(
+                                [
+                                    f"{format_number_str(self.theorical_stock, precision=1)} tonnes"
+                                ]
+                            ),
                             html.P(["stock théorique"]),
                         ],
                         className="sc-bar-number-stock",
@@ -253,11 +261,16 @@ class StorageStatsComponent(BaseComponent):
         siret = self.company_siret
 
         dfs_to_concat = [df for df in self.bs_data_dfs.values()]
+
+        if len(dfs_to_concat) == 0:
+            self.stock_by_waste_code = pd.Series()
+            return
+
         df = pd.concat(dfs_to_concat)
 
         emitted_mask = (df.emitterCompanySiret == siret) & ~df.sentAt.isna()
         received_mask = (df.recipientCompanySiret == siret) & ~df.receivedAt.isna()
-        emitted = df[emitted_mask].groupby("wasteCode")["wasteDetailsQuantity"].sum()
+        emitted = df[emitted_mask].groupby("wasteCode")["quantityReceived"].sum()
         received = df[received_mask].groupby("wasteCode")["quantityReceived"].sum()
 
         stock_by_waste_code: pd.Series = (

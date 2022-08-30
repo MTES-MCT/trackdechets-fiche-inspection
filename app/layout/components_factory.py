@@ -7,6 +7,10 @@ from app.data.data_extract import (
     load_and_preprocess_regions_geographical_data,
     load_departements_regions_data,
 )
+from app.layout.components.company_component import (
+    CompanyComponent,
+    ReceiptAgrementsComponent,
+)
 from app.layout.components.figure_component import (
     BSCreatedAndRevisedComponent,
     BSRefusalsComponent,
@@ -18,10 +22,43 @@ from app.layout.components.stats_component import (
     BSStatsComponent,
     StorageStatsComponent,
 )
-from dash import no_update
+from dash import no_update, dcc
 
 DEPARTEMENTS_REGION_DATA = load_departements_regions_data()
 REGIONS_GEODATA = load_and_preprocess_regions_geographical_data()
+
+
+def create_company_infos(company_data, receipts_agreements_data):
+    company_component = CompanyComponent(company_data=company_data)
+
+    receipts_agreements_component = ReceiptAgrementsComponent(receipts_agreements_data)
+
+    full_layout = [
+        dbc.Row(
+            [
+                dbc.Col(company_component.create_layout(), id="company-details", lg=3),
+                dbc.Col(
+                    receipts_agreements_component.create_layout(),
+                    id="receipts-agrements-details",
+                    lg=3,
+                ),
+                dbc.Col(
+                    dcc.Markdown(
+                        """
+Les données pour cet établissement peuvent être consultées sur Trackdéchets.
+
+Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, mais ne comprennent pas :
+- les éventuels BSD papiers non dématérialisés,
+- les bons d’enlèvements (huiles usagées et pneus)
+- les annexes 1 (petites quantités)""",
+                        id="general-infos",
+                    ),
+                    lg=3,
+                ),
+            ]
+        )
+    ]
+    return full_layout
 
 
 def create_bs_components_layouts(
@@ -169,6 +206,7 @@ def create_onsite_waste_components(
         {"name": "DASRI", "data": bsdasri_data},
         {"name": "VHU", "data": bsvhu_data},
     ]
+
     for config in load_configs:
 
         name = config["name"]

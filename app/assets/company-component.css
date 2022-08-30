@@ -3,3 +3,15 @@
     flex-direction: column;
     justify-content: space-between;
 }
+
+#company-details > * {
+    margin: 15px 0;
+}
+
+#receipts-agrements-details{
+    display: flex;
+    flex-direction: column;
+    border-width: 2px 2px 2px 6px;
+    border-color: #979797;
+    border-style: solid;
+}

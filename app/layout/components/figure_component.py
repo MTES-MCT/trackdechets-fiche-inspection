@@ -28,10 +28,7 @@ class FigureComponent(BaseComponent):
     def _add_figure_block(self) -> None:
 
         self._create_figure()
-        graph = dcc.Graph(
-            figure=self.figure,
-            config=dict(locale="fr"),
-        )
+        graph = dcc.Graph(figure=self.figure, config=dict(locale="fr"), responsive=True)
         self.component_layout.append(graph)
 
     def _create_figure(self) -> None:
@@ -137,7 +134,9 @@ class BSCreatedAndRevisedComponent(FigureComponent):
             max_y = max(bs_emitted_by_month.max(), bs_revised_by_month.max())
 
         fig.update_layout(
-            margin={"t": 20},
+            margin={
+                "t": 20,
+            },
             legend={"orientation": "h", "y": -0.05, "x": 0.5},
         )
 
@@ -196,7 +195,7 @@ class StockComponent(FigureComponent):
 
         self.outgoing_data_by_month = outgoing_data.groupby(
             pd.Grouper(key="sentAt", freq="1M")
-        )["wasteDetailsQuantity"].sum()
+        )["quantityReceived"].sum()
 
     def _check_data_empty(self) -> bool:
 
@@ -225,7 +224,7 @@ class StockComponent(FigureComponent):
             name="Quantité entrante",
             mode="lines+markers",
             hovertext=[
-                f"{index.month_name('fr_fr')} - <b>{format_number_str(e)}</b> tonnes"
+                f"{index.month_name('fr_fr')} - <b>{format_number_str(e)}</b> tonnes entrantes"
                 for index, e in incoming_data_by_month.items()
             ],
             hoverinfo="text",
@@ -236,8 +235,8 @@ class StockComponent(FigureComponent):
             name="Quantité sortante",
             mode="lines+markers",
             hovertext=[
-                f"{index.month_name('fr_fr')} - <b>{format_number_str(e)}</b> tonnes"
-                for index, e in incoming_data_by_month.items()
+                f"{index.month_name('fr_fr')} - <b>{format_number_str(e)}</b> tonnes sortantes"
+                for index, e in outgoing_data_by_month.items()
             ],
             hoverinfo="text",
         )
@@ -245,19 +244,26 @@ class StockComponent(FigureComponent):
         fig = go.Figure(data=[incoming_line, outgoing_line])
 
         fig.update_layout(
-            margin={"t": 20},
+            margin={"t": 20, "l": 30, "r": 5},
             legend={"orientation": "h", "y": -0.1, "x": 0.5},
             legend_font_size=11,
             showlegend=True,
         )
+        if pd.isna(incoming_data_by_month.index.min()):
+            min_x = outgoing_data_by_month.index.min()
+        elif pd.isna(outgoing_data_by_month.index.min()):
+            min_x = incoming_data_by_month.index.min()
+        else:
+            min_x = min(
+                incoming_data_by_month.index.min(), outgoing_data_by_month.index.min()
+            )
         fig.update_xaxes(
             tickangle=0,
             tickformat="%b",
-            tick0=min(
-                incoming_data_by_month.index.min(), outgoing_data_by_month.index.min()
-            ),
+            tick0=min_x,
             dtick="M1",
         )
+        fig.update_yaxes(exponentformat="B", tickformat=".2s")
 
         self.figure = fig
 
@@ -376,6 +382,9 @@ class WasteOriginsComponent(FigureComponent):
 
     def _preprocess_bs_data(self) -> None:
 
+        if len(self.bs_data_dfs) == 0:
+            return
+
         concat_df = pd.concat(list(self.bs_data_dfs.values()))
 
         concat_df["cp"] = concat_df["emitterCompanyAddress"].str.extract(
@@ -412,7 +421,11 @@ class WasteOriginsComponent(FigureComponent):
 
     def _check_data_empty(self) -> bool:
 
-        if self.preprocessed_serie.isna().all() or len(self.preprocessed_serie) == 0:
+        if (
+            (self.preprocessed_serie is None)
+            or self.preprocessed_serie.isna().all()
+            or len(self.preprocessed_serie) == 0
+        ):
             self.is_component_empty = True
             return True
 
@@ -441,8 +454,8 @@ class WasteOriginsComponent(FigureComponent):
             tup_e
             for index, value in serie.items()
             for tup_e in (
-                "",
                 f"{index} - <b>{format_number_str(value, precision=2)}t</b> reçues",
+                "",
             )
         ]
         bar_trace = go.Bar(
@@ -454,6 +467,7 @@ class WasteOriginsComponent(FigureComponent):
             textposition="outside",
             width=[tup_e for e in values for tup_e in (0.7, 1)],
             hovertext=hovertexts,
+            hoverinfo="text",
         )
 
         fig = go.Figure([bar_trace])
@@ -492,6 +506,9 @@ class WasteOriginsMapComponent(FigureComponent):
 
     def _preprocess_bs_data(self) -> None:
 
+        if len(self.bs_data_dfs) == 0:
+            return
+
         concat_df = pd.concat(list(self.bs_data_dfs.values()))
 
         concat_df["cp"] = concat_df["emitterCompanyAddress"].str.extract(
@@ -523,8 +540,9 @@ class WasteOriginsMapComponent(FigureComponent):
     def _check_data_empty(self) -> bool:
 
         if (
-            self.preprocessed_df["quantityReceived"].isna().all()
-            or len(self.preprocessed_df) == 0
+            (self.preprocessed_df is None)
+            or self.preprocessed_df["quantityReceived"].isna().all()
+            or (len(self.preprocessed_df) == 0)
             or (self.preprocessed_df["quantityReceived"] == 0).all()
         ):
             self.is_component_empty = True

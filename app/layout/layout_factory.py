@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta, tzinfo
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import dash_bootstrap_components as dbc
@@ -18,6 +18,7 @@ from app.layout.components.figure_component import (
 from app.layout.components_factory import (
     create_bs_components_layouts,
     create_bs_refusal_component,
+    create_company_infos,
     create_onsite_waste_components,
 )
 from dash import Input, Output, State, callback, dcc, html, no_update
@@ -47,6 +48,7 @@ def get_layout() -> html.Main:
                                         minLength=14,
                                         maxLength=14,
                                         autoComplete="true",
+                                        name="siret",
                                     ),
                                     html.Button(
                                         "Générer",
@@ -61,28 +63,10 @@ def get_layout() -> html.Main:
                     ),
                     dbc.Row(
                         [
-                            dbc.Col(id="company_name", width=12),
+                            dbc.Col(id="company-name", width=12),
                         ]
                     ),
-                    dbc.Row(
-                        [
-                            dbc.Col(id="company-details", width=6),
-                            dbc.Col(
-                                dcc.Markdown(
-                                    """
-Les données pour cet établissement peuvent être consultées sur Trackdéchets.
-
-Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, mais ne comprennent pas :
-- les éventuels BSD papiers non dématérialisés,
-- les bons d’enlèvements (huiles usagées et pneus)
-- les annexes 1 (petites quantités)""",
-                                    style={"display": "None"},
-                                    id="general-infos",
-                                ),
-                                width=6,
-                            ),
-                        ]
-                    ),
+                    html.Div(id="company-infos"),
                     html.Div(
                         [
                             dbc.Row(
@@ -124,6 +108,7 @@ Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, m
                 ],
             ),
             dcc.Store(id="company-data"),
+            dcc.Store(id="receipt-agrement-data"),
             dcc.Store(id="bsdd-data"),
             dcc.Store(id="bsda-data"),
             dcc.Store(id="bsff-data"),
@@ -138,6 +123,7 @@ Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, m
     output=[
         (
             Output("company-data", "data"),
+            Output("receipt-agrement-data", "data"),
             Output("bsdd-data", "data"),
             Output("bsda-data", "data"),
             Output("bsff-data", "data"),
@@ -148,7 +134,7 @@ Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, m
     ],
     inputs=[Input("submit-siret", "n_clicks"), State("siret", "value")],
 )
-def get_company_data(n_clicks: int, siret: str):
+def get_data_for_siret(n_clicks: int, siret: str):
 
     if n_clicks is not None:
 
@@ -175,6 +161,46 @@ def get_company_data(n_clicks: int, siret: str):
             )
 
         res.append(company_data_df.iloc[0].to_json())
+
+        receipts_agreements_data = {}
+        for config in [
+            {
+                "name": "Récépissé Transporteur",
+                "column": "transporterReceiptId",
+                "sql_file": "get_transporterReceiptId_data",
+            },
+            {
+                "name": "Récépissé Négociant",
+                "column": "traderReceiptId",
+                "sql_file": "get_traderReceiptId_data",
+            },
+            {
+                "name": "Récépissé Courtier",
+                "column": "brokerReceiptId",
+                "sql_file": "get_brokerReceiptId_data",
+            },
+            {
+                "name": "Agrément Démolisseur ",
+                "column": "vhuAgrementDemolisseurId",
+                "sql_file": "get_vhuAgrement_data",
+            },
+            {
+                "name": "Agrément Broyeur",
+                "column": "vhuAgrementBroyeurId",
+                "sql_file": "get_vhuAgrement_data",
+            },
+        ]:
+            id_ = company_data_df[config["column"]].item()
+            if id_ is not None:
+                data = make_query(
+                    config["sql_file"],
+                    date_columns=["validityLimit"],
+                    id=id_,
+                )
+                if len(data) != 0:
+                    receipts_agreements_data[config["name"]] = data.to_json()
+
+        res.append(receipts_agreements_data)
 
         bs_configs = [
             {
@@ -224,29 +250,33 @@ def get_company_data(n_clicks: int, siret: str):
 
 
 @callback(
-    Output("company_name", "children"),
-    Output("general-infos", "style"),
+    Output("company-name", "children"),
     Input("company-data", "data"),
 )
 def populate_company_header(company_data: str):
     company_data = json.loads(company_data)
     company_name = company_data["name"]
-    today_date = datetime.now(tz=ZoneInfo("Europe/Paris")).strftime("%d %B %Y")
+    today_date = datetime.now(tz=ZoneInfo("Europe/Paris")).strftime(r"%d/%m/%Y")
 
     layout = html.H1(f"{company_name} - {today_date}")
-    return layout, {"display": "block"}
+    return layout
 
 
 @callback(
-    Output("company-details", "children"),
+    Output("company-infos", "children"),
     Input("company-data", "data"),
+    Input("receipt-agrement-data", "data"),
 )
-def populate_company_details(company_data: str):
+def populate_company_details(company_data: str, receipt_agrement_data: str):
     company_data = json.loads(company_data)
+    receipt_agrement_data = {
+        k: pd.read_json(v, convert_dates=["validityLimit"])
+        for k, v in receipt_agrement_data.items()
+    }
 
-    company_component = CompanyComponent(company_data=company_data)
+    layouts = create_company_infos(company_data, receipt_agrement_data)
 
-    return company_component.create_layout()
+    return layouts
 
 
 @callback(

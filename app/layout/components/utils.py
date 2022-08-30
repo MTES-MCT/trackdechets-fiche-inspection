@@ -1,3 +1,5 @@
+import re
+from typing import List
 import pandas as pd
 import numpy as np
 
@@ -18,4 +20,4 @@ def get_code_departement(code_postal: str):
 
 def format_number_str(input_number: float, precision: int = 2) -> str:
     input_number = round(input_number, precision)
-    return "{:,}".format(input_number).replace(",", " ")
+    return re.sub(r"\.0+", "", "{:,}".format(input_number).replace(",", " "))

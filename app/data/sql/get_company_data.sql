@@ -2,6 +2,13 @@ select id,
     "createdAt",
     "siret",
     "name",
-    "address"
+    "address",
+    "companyTypes",
+    "transporterReceiptId",
+    "traderReceiptId",
+    "ecoOrganismeAgreements",
+    "brokerReceiptId",
+    "vhuAgrementDemolisseurId",
+    "vhuAgrementBroyeurId"
 from "default$default"."Company" c
-where siret = '{siret}'
+where c."siret" = '{siret}'
