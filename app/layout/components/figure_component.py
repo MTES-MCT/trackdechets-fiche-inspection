@@ -224,7 +224,7 @@ class StockComponent(FigureComponent):
             name="Quantité entrante",
             mode="lines+markers",
             hovertext=[
-                f"{index.month_name('fr_FR')} - <b>{format_number_str(e)}</b> tonnes entrantes"
+                f"{index.month_name()} - <b>{format_number_str(e)}</b> tonnes entrantes"
                 for index, e in incoming_data_by_month.items()
             ],
             hoverinfo="text",
@@ -235,7 +235,7 @@ class StockComponent(FigureComponent):
             name="Quantité sortante",
             mode="lines+markers",
             hovertext=[
-                f"{index.month_name('fr_FR')} - <b>{format_number_str(e)}</b> tonnes sortantes"
+                f"{index.month_name()} - <b>{format_number_str(e)}</b> tonnes sortantes"
                 for index, e in outgoing_data_by_month.items()
             ],
             hoverinfo="text",
