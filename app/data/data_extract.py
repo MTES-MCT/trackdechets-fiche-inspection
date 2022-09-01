@@ -61,9 +61,7 @@ def load_waste_code_data() -> pd.DataFrame:
 
 def load_and_preprocess_regions_geographical_data() -> gpd.GeoDataFrame:
 
-    gdf = gpd.read_file(
-        "/Users/luis/projects/entropeak/trackdechets/trackdechets-fiche-inspection/app/data/static/regions.geojson"
-    )
+    gdf = gpd.read_file(STATIC_FILES_PATH / "regions.geojson")
 
     translations = {
         "Guadeloupe": {"x": 55, "y": 30, "scale": 1.5},
