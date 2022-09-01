@@ -210,6 +210,10 @@ class StockComponent(FigureComponent):
             self.is_component_empty = True
             return True
 
+        if (incoming_data_by_month == 0).all() and (outgoing_data_by_month == 0).all():
+            self.is_component_empty = True
+            return True
+
         self.is_component_empty = False
         return False
 
