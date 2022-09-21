@@ -163,7 +163,9 @@ class BSCreatedAndRevisedComponent(FigureComponent):
 
 
 class StockComponent(FigureComponent):
-    def __init__(self, component_title: str, company_siret: str, bs_data) -> None:
+    def __init__(
+        self, component_title: str, company_siret: str, bs_data: pd.DataFrame
+    ) -> None:
         super().__init__(component_title, company_siret)
 
         self.bs_data = bs_data
@@ -308,20 +310,16 @@ class BSRefusalsComponent(FigureComponent):
         return True
 
     def _preprocess_data(self) -> None:
-        def compute_perc_refusals(df: pd.DataFrame):
-            df = df.copy()
-            if len(df) == 0:
-                return 0
-            df_refused = df[df["status"] == "REFUSED"]
-            res = len(df_refused) / len(df)
-            return res
 
         preprocessed_series = {}
         for name, df in self.bs_data_dfs.items():
             preprocessed_serie = (
-                df[df["emitterCompanySiret"] == self.company_siret]
+                df[
+                    (df["emitterCompanySiret"] == self.company_siret)
+                    & (df["status"] == "REFUSED")
+                ]
                 .groupby(pd.Grouper(key="createdAt", freq="1M"))
-                .apply(compute_perc_refusals)
+                .id.count()
             )
             if len(preprocessed_serie) > 0:
                 preprocessed_series[name] = preprocessed_serie
@@ -340,7 +338,7 @@ class BSRefusalsComponent(FigureComponent):
                 y=serie,
                 name=name,
                 mode="lines+markers",
-                hovertemplate="%{x|%B} - %{y:.2f}% de bordereaux refusés",
+                hovertemplate="%{x|%B} - %{y:.0f} bordereau(x) refusé(s)",
             )
             mins.append(serie.index.min())
             traces.append(trace)
@@ -359,6 +357,7 @@ class BSRefusalsComponent(FigureComponent):
             tick0=min(mins),
             dtick="M1",
         )
+        fig.update_yaxes(dtick=1)
 
         self.figure = fig
 

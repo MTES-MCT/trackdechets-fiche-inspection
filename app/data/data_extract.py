@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 import geopandas as gpd
 import pandas as pd
@@ -13,7 +13,10 @@ STATIC_FILES_PATH = Path("app/data/static")
 
 
 def make_query(
-    sql_query_name: str, date_columns: List[str] = None, **format_arguments
+    sql_query_name: str,
+    date_columns: List[str] = None,
+    dtypes: dict[str, Any] = None,
+    **format_arguments,
 ) -> pd.DataFrame:
     sql_query_str = (
         (SQL_QUERIES_PATH / f"{sql_query_name}.sql")
@@ -25,7 +28,9 @@ def make_query(
     date_params = None
     if date_columns is not None:
         date_params = {e: {"utc": True} for e in date_columns}
-    df = pd.read_sql(sql_query_str, con=SQL_ENGINE, parse_dates=date_params)
+    df = pd.read_sql_query(
+        sql_query_str, con=SQL_ENGINE, dtype=dtypes, parse_dates=date_params
+    )
 
     return df
 
@@ -54,7 +59,7 @@ def load_waste_code_data() -> pd.DataFrame:
     df = pd.read_csv(
         STATIC_FILES_PATH / "code_dechets.csv", dtype="str", index_col="code"
     )
-    assert df.index.is_unique()
+    assert df.index.is_unique
 
     return df
 

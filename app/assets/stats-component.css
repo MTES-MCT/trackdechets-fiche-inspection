@@ -97,7 +97,7 @@
     flex-direction: row;
     margin: 25px 0;
     justify-content: flex-start;
-    align-items: end;
+    align-items: center;
 }
 
 .sc-quantity-value {
@@ -121,4 +121,33 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+}
+
+
+#sc-date-outliers {
+    margin-top: 20px;
+}
+
+.sc-outlier-date-bs-type{
+    text-decoration: underline;
+}
+.sc-bs-outliers-list {
+    margin-top: 20px;
+}
+
+.sc-bs-outliers-list > li {
+    margin: 0;
+}
+
+.sc-bs-outlier-list-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.sc-bs-outlier-list-header > * {
+    margin:0;
+}
+
+.sc-bs-outliers-item > * {
+    margin-bottom: 0;
 }

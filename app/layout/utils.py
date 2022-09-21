@@ -56,5 +56,3 @@ def add_figure(fig, fig_id: str) -> dbc.Row:
         ]
     )
     return row
-
-

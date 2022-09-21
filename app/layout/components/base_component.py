@@ -2,7 +2,7 @@ from dash import html
 
 
 class BaseComponent:
-    def __init__(self, component_title: str, company_siret: str) -> None:
+    def __init__(self, component_title: str, company_siret: str = None) -> None:
         self.component_title = component_title
         self.company_siret = company_siret
 
@@ -26,4 +26,4 @@ class BaseComponent:
         )
 
     def _check_data_empty(self) -> bool:
-        raise NotImplementedError
+        pass

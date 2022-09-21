@@ -36,5 +36,9 @@
         margin: 0;
     }
 
+    .sc-outlier-date-download-button{
+        display: none;
+    }
+
     
 }

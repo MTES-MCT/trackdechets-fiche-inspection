@@ -10,7 +10,8 @@ select
     "weightValue" as "wasteDetailsQuantity",
     "destinationReceptionWeight" as "quantityReceived",
     "wasteCode",
-    "status"
+    "status",
+    "transporterTransportMode"
 from
     "default$default"."Bsda"
 where

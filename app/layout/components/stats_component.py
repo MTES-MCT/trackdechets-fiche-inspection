@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from .base_component import BaseComponent
 from .utils import format_number_str
-from dash import html
+from dash import html, dcc
 
 
 class BSStatsComponent(BaseComponent):
@@ -247,11 +247,13 @@ class StorageStatsComponent(BaseComponent):
         component_title: str,
         company_siret: str,
         bs_data_dfs: Dict[str, pd.DataFrame],
+        waste_codes_df: pd.DataFrame,
     ) -> None:
 
         super().__init__(component_title, company_siret)
 
         self.bs_data_dfs = bs_data_dfs
+        self.waste_codes_df = waste_codes_df
 
         self.stock_by_waste_code = None
         self.total_stock = None
@@ -281,13 +283,22 @@ class StorageStatsComponent(BaseComponent):
         stock_by_waste_code = stock_by_waste_code[stock_by_waste_code > 0]
         total_stock = stock_by_waste_code.sum()
 
+        stock_by_waste_code = pd.merge(
+            stock_by_waste_code,
+            self.waste_codes_df,
+            left_index=True,
+            right_index=True,
+            how="left",
+            validate="one_to_one",
+        )
+
         self.stock_by_waste_code = stock_by_waste_code
         self.total_stock = total_stock
 
     def _check_empty_data(self) -> bool:
-        if (
-            len(self.stock_by_waste_code) == 0
-        ) or self.stock_by_waste_code.isna().all():
+        if (len(self.stock_by_waste_code) == 0) or self.stock_by_waste_code[
+            "quantityReceived"
+        ].isna().all():
             self.is_component_empty = True
             return True
 
@@ -297,12 +308,18 @@ class StorageStatsComponent(BaseComponent):
     def _add_stats(self):
 
         tops_divs = []
-        for code, quantity in self.stock_by_waste_code.head(4).items():
+        for row in self.stock_by_waste_code.head(4).itertuples():
             tops_divs.append(
                 html.Div(
                     [
-                        html.Div(f"{quantity:.2f}t", className="sc-quantity-value"),
-                        html.Div(code, className="sc-waste-code"),
+                        html.Div(
+                            f"{row.quantityReceived:.2f}t",
+                            className="sc-quantity-value",
+                        ),
+                        html.Div(
+                            row.Index + " - " + row.description,
+                            className="sc-waste-code",
+                        ),
                     ],
                     className="sc-stock-item",
                 )
@@ -330,5 +347,151 @@ class StorageStatsComponent(BaseComponent):
             return self.component_layout
 
         self._add_stats()
+
+        return self.component_layout
+
+
+class AdditionalInfoComponent(BaseComponent):
+    def __init__(
+        self,
+        component_title: str,
+        siret: str,
+        additional_data: Dict[str, Dict[str, pd.DataFrame]],
+    ) -> None:
+
+        super().__init__(component_title, siret)
+
+        self.additional_data = additional_data
+
+        self.date_outliers_data = None
+        self.quantity_outliers_data = None
+
+    def _check_data_empty(self) -> bool:
+
+        if (
+            len(self.additional_data["date_outliers"])
+            == len(self.additional_data["quantity_outliers"])
+            == 0
+        ):
+            self.is_component_empty = True
+            return self.is_component_empty
+
+        self.is_component_empty = False
+        return False
+
+    def _preprocess_data(self) -> None:
+
+        name_mapping = {
+            "sentAt": "Date d'envoi",
+            "receivedAt": "Date de réception",
+            "processedAt": "Date de traitement",
+        }
+
+        date_outliers_data = {}
+        for key, value in self.additional_data["date_outliers"].items():
+
+            date_outliers_data[key] = {
+                name_mapping[k]: v[k] for k, v in value.items() if v is not None
+            }
+
+        self.date_outliers_data = date_outliers_data
+        self.quantity_outliers_data = self.additional_data["quantity_outliers"]
+
+    def _add_date_outliers_layout(self) -> None:
+
+        data_outliers_bs_list_layout = []
+        for bs_type, outlier_data in self.date_outliers_data.items():
+
+            bs_col_example_li = []
+            for col, serie in outlier_data.items():
+                bs_col_example_li.append(
+                    html.Li(
+                        [
+                            html.Span(f"{col} : ", className="fr-text--lg"),
+                            f"{len(serie)} valeur(s) incohérente(s) (exemple de valeur : {serie.sample(1).item()})",
+                        ],
+                        className="fr-text--sm sc-date-outlier-example",
+                    )
+                )
+
+            data_outliers_bs_list_layout.append(
+                html.Li(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    f"{bs_type} :",
+                                    className="fr-text--lg sc-outlier-date-bs-type",
+                                ),
+                                html.Button(
+                                    "Télécharger les données correspondantes",
+                                    id={
+                                        "type": "download-date-outliers",
+                                        "index": bs_type,
+                                    },
+                                    className="fr-text--xs sc-outlier-date-download-button",
+                                ),
+                            ],
+                            className="sc-bs-outlier-list-header",
+                        ),
+                        html.Ul(bs_col_example_li),
+                    ],
+                    className="sc-bs-outliers-item",
+                ),
+            )
+
+        date_outliers_layout = html.Div(
+            [
+                html.Div(
+                    [
+                        "Une ou plusieurs dates incohérentes ont été trouvées pour les types de bordereaux suivants :"
+                    ]
+                ),
+                html.Ul(data_outliers_bs_list_layout, className="sc-bs-outliers-list"),
+            ],
+            id="sc-date-outliers",
+        )
+
+        self.component_layout.append(date_outliers_layout)
+
+    def _add_quantity_outliers_layout(self) -> None:
+        quantity_outliers_bs_list_layout = []
+        for bs_type, outlier_data in self.quantity_outliers_data.items():
+
+            quantity_outliers_bs_list_layout.append(
+                html.Li(
+                    [
+                        html.Span(f"{bs_type} : ", className="fr-text--lg"),
+                        f"{len(outlier_data)} quantité(s) incohérente(s) (exemple de valeur : {outlier_data.quantityReceived.sort_values(ascending=False).head(1).item()} tonnes)",
+                    ],
+                    className="fr-text--sm sc-date-outlier-example",
+                )
+            )
+
+        quantity_outliers_layout = html.Div(
+            [
+                html.Div(
+                    [
+                        "Une ou plusieurs quantités incohérentes ont été trouvées pour les types de bordereaux suivants :"
+                    ]
+                ),
+                html.Ul(
+                    quantity_outliers_bs_list_layout, className="sc-bs-outliers-list"
+                ),
+            ],
+            id="sc-quantity-outliers",
+        )
+
+        self.component_layout.append(quantity_outliers_layout)
+
+    def create_layout(self) -> list:
+        self._add_component_title()
+        self._preprocess_data()
+
+        if not self._check_data_empty():
+            if len(self.date_outliers_data):
+                self._add_date_outliers_layout()
+            if len(self.quantity_outliers_data):
+                self._add_quantity_outliers_layout()
 
         return self.component_layout

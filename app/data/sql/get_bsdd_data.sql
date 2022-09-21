@@ -7,11 +7,11 @@ select
     "emitterCompanySiret",
     "emitterCompanyAddress",
     "recipientCompanySiret",
-    "ownerId",
     "wasteDetailsQuantity",
     "quantityReceived",
     "wasteDetailsCode" as "wasteCode",
-    "status"
+    "status",
+    "transporterTransportMode"
  from
     "default$default"."Form" f
 where

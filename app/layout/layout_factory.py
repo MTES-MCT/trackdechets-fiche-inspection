@@ -5,27 +5,28 @@ from zoneinfo import ZoneInfo
 
 import dash_bootstrap_components as dbc
 import pandas as pd
-from app.data.data_extract import (
-    load_and_preprocess_regions_geographical_data,
-    load_departements_regions_data,
-    make_query,
-)
-from app.layout.components.figure_component import (
-    BSRefusalsComponent,
-    WasteOriginsComponent,
-    WasteOriginsMapComponent,
-)
+from app.data.data_extract import make_query
+from app.data.utils import get_outliers_datetimes_df, get_quantity_outliers
 from app.layout.components_factory import (
     create_bs_components_layouts,
-    create_bs_refusal_component,
     create_company_infos,
+    create_complementary_figure_components,
     create_onsite_waste_components,
+    create_waste_input_output_table_component,
 )
-from dash import Input, Output, State, callback, dcc, html, no_update
+from dash import (
+    MATCH,
+    Input,
+    Output,
+    State,
+    callback,
+    dcc,
+    html,
+    no_update,
+    ALL,
+    callback_context,
+)
 from dash.exceptions import PreventUpdate
-
-from .components.company_component import CompanyComponent
-from .components.stats_component import StorageStatsComponent
 
 logger = logging.getLogger()
 
@@ -61,49 +62,63 @@ def get_layout() -> html.Main:
                         ],
                         className="no_print",
                     ),
-                    dbc.Row(
-                        [
-                            dbc.Col(id="company-name", width=12),
-                        ]
-                    ),
-                    html.Div(id="company-infos"),
                     html.Div(
                         [
                             dbc.Row(
                                 [
-                                    html.H2(
-                                        "Données des bordereaux de suivi dématérialisés issues de Trackdéchets"
-                                    )
+                                    dbc.Col(id="company-name", width=12),
                                 ]
                             ),
+                            html.Div(id="company-infos"),
                             html.Div(
-                                id="bsdd-figures",
+                                [
+                                    dbc.Row(
+                                        [
+                                            html.H2(
+                                                "Données des bordereaux de suivi dématérialisés issues de Trackdéchets"
+                                            )
+                                        ]
+                                    ),
+                                    html.Div(
+                                        id="bsdd-figures",
+                                    ),
+                                    html.Div(
+                                        id="bsda-figures",
+                                    ),
+                                    html.Div(
+                                        id="bsff-figures",
+                                    ),
+                                    html.Div(
+                                        id="bsdasri-figures",
+                                    ),
+                                    html.Div(
+                                        id="bsvhu-figures",
+                                    ),
+                                    html.Div(
+                                        [],
+                                        id="complementary-figures",
+                                    ),
+                                ],
+                                id="bordereaux-data-section",
                             ),
                             html.Div(
-                                id="bsda-figures",
+                                [
+                                    dbc.Row([html.H2("Déchets sur site (théorique)")]),
+                                    html.Div(id="stock-data-figures"),
+                                ],
+                                id="stock-data-section",
                             ),
                             html.Div(
-                                id="bsff-figures",
-                            ),
-                            html.Div(
-                                id="bsdasri-figures",
-                            ),
-                            html.Div(
-                                id="bsvhu-figures",
-                            ),
-                            html.Div(
-                                [],
-                                id="complementary-figures",
+                                [
+                                    dbc.Row(
+                                        [html.H2("Liste des déchets entrants/sortants")]
+                                    ),
+                                    html.Div(id="input-output-waste-data-table"),
+                                ],
+                                id="input-output-waste",
                             ),
                         ],
-                        id="bordereaux-data-section",
-                    ),
-                    html.Div(
-                        [
-                            dbc.Row([html.H2("Déchets sur site (théorique)")]),
-                            html.Div(id="stock-data-figures"),
-                        ],
-                        id="stock-data-section",
+                        id="main-layout-fiche",
                     ),
                 ],
             ),
@@ -114,6 +129,8 @@ def get_layout() -> html.Main:
             dcc.Store(id="bsff-data"),
             dcc.Store(id="bsdasri-data"),
             dcc.Store(id="bsvhu-data"),
+            dcc.Store(id="additional-data"),
+            dcc.Download(id="download-df-csv"),
         ]
     )
     return layout
@@ -129,8 +146,10 @@ def get_layout() -> html.Main:
             Output("bsff-data", "data"),
             Output("bsdasri-data", "data"),
             Output("bsvhu-data", "data"),
+            Output("additional-data", "data"),
         ),
         Output("alert-container", "children"),
+        Output("main-layout-fiche", "style"),
     ],
     inputs=[Input("submit-siret", "n_clicks"), State("siret", "value")],
 )
@@ -141,23 +160,27 @@ def get_data_for_siret(n_clicks: int, siret: str):
         res = []
         if siret is None or len(siret) != 14:
             return (
-                (no_update,) * 6,
+                (no_update,) * 8,
                 dbc.Alert(
                     "SIRET non conforme",
                     color="danger",
                 ),
+                {"display": "none"},
             )
 
-        company_data_df = make_query("get_company_data", siret=siret)
+        company_data_df = make_query(
+            "get_company_data", siret=siret, date_columns=["createdAt"]
+        )
 
         if len(company_data_df) == 0:
 
             return (
-                (no_update,) * 6,
+                (no_update,) * 8,
                 dbc.Alert(
                     "Aucune entreprise avec ce SIRET inscrite sur Trackdéchets",
                     color="danger",
                 ),
+                {"display": "none"},
             )
 
         res.append(company_data_df.iloc[0].to_json())
@@ -202,49 +225,82 @@ def get_data_for_siret(n_clicks: int, siret: str):
 
         res.append(receipts_agreements_data)
 
+        bs_dtypes = {
+            "id": str,
+            "createdAt": str,
+            "sentAt": str,
+            "receivedAt": str,
+            "processedAt": str,
+            "emitterCompanySiret": str,
+            "emitterCompanyAddress": str,
+            "recipientCompanySiret": str,
+            "wasteDetailsQuantity": float,
+            "quantityReceived": float,
+            "wasteCode": str,
+            "status": str,
+        }
+
         bs_configs = [
             {
-                "bsdd_data_df": "get_bsdd_data",
-                "bsdd_revised_data_df": "get_bsdd_revised_data",
+                "bs_type": "BSDD",
+                "bs_data": "get_bsdd_data",
+                "bs_revised_data": "get_bsdd_revised_data",
             },
             {
-                "bsda_data_df": "get_bsda_data",
-                "bsda_revised_data_df": "get_bsda_revised_data",
+                "bs_type": "BSDA",
+                "bs_data": "get_bsda_data",
+                "bs_revised_data": "get_bsda_revised_data",
             },
-            {"bsff_data_df": "get_bsff_data"},
-            {"bsdasri_data_df": "get_bsdasri_data"},
-            {"bsvhu_data_df": "get_bsvhu_data"},
+            {"bs_type": "BSFF", "bs_data": "get_bsff_data"},
+            {"bs_type": "BSDASRI", "bs_data": "get_bsdasri_data"},
+            {"bs_type": "BSVHU", "bs_data": "get_bsvhu_data"},
         ]
+
+        additional_data = {"date_outliers": {}, "quantity_outliers": {}}
 
         for bs_config in bs_configs:
 
-            keys = list(bs_config.keys())
-            queries = list(bs_config.values())
+            to_store = {"bs_data": None, "bs_revised_data": None}
 
-            to_store = {key: None for key in keys}
-
-            bs_data = make_query(
-                queries[0],
-                date_columns=["createdAt", "sentAt", "receivedAt", "processedAt"],
+            bs_data_df = make_query(
+                bs_config["bs_data"],
+                dtypes=bs_dtypes,
                 siret=siret,
             )
 
-            if len(bs_data) != 0:
+            quantity_outliers = get_quantity_outliers(bs_data_df, bs_config["bs_type"])
 
-                to_store[keys[0]] = bs_data.to_json()
-                if len(queries) == 2:
-                    bs_revised_data = make_query(
-                        queries[1],
+            if len(quantity_outliers) > 0:
+                additional_data["quantity_outliers"][
+                    bs_config["bs_type"]
+                ] = quantity_outliers.to_json()
+
+            bs_data_df, date_outliers = get_outliers_datetimes_df(
+                bs_data_df, date_columns=["sentAt", "receivedAt", "processedAt"]
+            )
+
+            if len(date_outliers) > 0:
+                additional_data["date_outliers"][bs_config["bs_type"]] = date_outliers
+
+            if len(bs_data_df) != 0:
+
+                to_store["bs_data"] = bs_data_df.to_json()
+                if bs_config.get("bs_revised_data") is not None:
+                    bs_revised_data_df = make_query(
+                        bs_config["bs_revised_data"],
                         date_columns=["createdAt"],
                         company_id=company_data_df["id"],
                     )
-                    if len(bs_revised_data) > 0:
-                        to_store[keys[1]] = bs_revised_data.to_json()
+                    if len(bs_revised_data_df) > 0:
+                        to_store["bs_revised_data"] = bs_revised_data_df.to_json()
 
                 res.append(to_store)
             else:
                 res.append(None)
-        return tuple(res), None
+
+        res.append(additional_data)
+        print("yeah")
+        return tuple(res), None, {"display": "revert"}
     else:
         raise PreventUpdate
 
@@ -281,38 +337,20 @@ def populate_company_details(company_data: str, receipt_agrement_data: str):
 
 @callback(
     output=(Output("bsdd-figures", "children"),),
-    inputs=(Input("company-data", "data"), Input("bsdd-data", "data")),
+    inputs=(
+        Input("company-data", "data"),
+        Input("bsdd-data", "data"),
+    ),
 )
 def populate_bsdd_components(company_data: str, bsdd_data: str):
 
-    company_data = json.loads(company_data)
-    siret = company_data["siret"]
-
-    if bsdd_data is None or len(bsdd_data) == 0:
-        logger.info("Pas de données trouvées pour le siret %s", siret)
+    if bsdd_data is None:
+        logger.info("Pas de données BSDD trouvées pour le siret")
         return no_update
 
-    bsdd_data_df = pd.read_json(
-        bsdd_data["bsdd_data_df"],
-        dtype={
-            "emitterCompanySiret": str,
-            "recipientCompanySiret": str,
-            "wasteDetailsQuantity": float,
-            "quantityReceived": float,
-        },
-        convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
-    )
-    if bsdd_data["bsdd_revised_data_df"] is not None:
-        bsdd_revised_data_df = pd.read_json(
-            bsdd_data["bsdd_revised_data_df"], dtype=False, convert_dates=["createdAt"]
-        )
-    else:
-        bsdd_revised_data_df = None
-
     layout = create_bs_components_layouts(
-        bsdd_data_df,
-        bsdd_revised_data_df,
-        siret,
+        bsdd_data,
+        company_data,
         [
             "BSD Dangereux émis et corrigés",
             "Quantité de déchets dangereux en tonnes",
@@ -330,35 +368,13 @@ def populate_bsdd_components(company_data: str, bsdd_data: str):
 )
 def populate_bsda_components(company_data: str, bsda_data: str):
 
-    company_data = json.loads(company_data)
-    siret = company_data["siret"]
-
     if bsda_data is None or len(bsda_data) == 0:
-        logger.info("Pas de données BSDA trouvées pour le siret %s", siret)
-        return [], [], []
-
-    bsda_data_df = pd.read_json(
-        bsda_data["bsda_data_df"],
-        dtype={
-            "emitterCompanySiret": str,
-            "recipientCompanySiret": str,
-            "wasteDetailsQuantity": float,
-            "quantityReceived": float,
-        },
-        convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
-    )
-
-    if bsda_data["bsda_revised_data_df"] is not None:
-        bsda_revised_data_df = pd.read_json(
-            bsda_data["bsda_revised_data_df"], convert_dates=["createdAt"]
-        )
-    else:
-        bsda_revised_data_df = None
+        logger.info("Pas de données BSDA trouvées pour le siret")
+        return no_update
 
     layout = create_bs_components_layouts(
-        bsda_data_df,
-        bsda_revised_data_df,
-        siret,
+        bsda_data,
+        company_data,
         [
             "BSD Amiante émis et corrigés",
             "Quantité de déchets amiante en tonnes",
@@ -376,28 +392,13 @@ def populate_bsda_components(company_data: str, bsda_data: str):
 )
 def populate_bsff_components(company_data: str, bsff_data: str):
 
-    company_data = json.loads(company_data)
-    siret = company_data["siret"]
-
     if bsff_data is None or len(bsff_data) == 0:
-        logger.info("Pas de données BSDFF trouvées pour le siret %s", siret)
+        logger.info("Pas de données BSDFF trouvées pour le siret")
         return [], [], []
 
-    bsff_data_df = pd.read_json(
-        bsff_data["bsff_data_df"],
-        dtype={
-            "emitterCompanySiret": str,
-            "recipientCompanySiret": str,
-            "wasteDetailsQuantity": float,
-            "quantityReceived": float,
-        },
-        convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
-    )
-
     layout = create_bs_components_layouts(
-        bsff_data_df,
-        None,
-        siret,
+        bsff_data,
+        company_data,
         [
             "BS Fluides Frigo émis et corrigés",
             "Quantité de déchets fluides frigo en tonnes",
@@ -415,28 +416,13 @@ def populate_bsff_components(company_data: str, bsff_data: str):
 )
 def populate_bsdasri_components(company_data: str, bsdasri_data: str):
 
-    company_data = json.loads(company_data)
-    siret = company_data["siret"]
-
-    if bsdasri_data is None or len(bsdasri_data) == 0:
-        logger.info("Pas de données BSDASRI trouvées pour le siret %s", siret)
-        return [], [], []
-
-    bsdasri_data_df = pd.read_json(
-        bsdasri_data["bsdasri_data_df"],
-        dtype={
-            "emitterCompanySiret": str,
-            "recipientCompanySiret": str,
-            "wasteDetailsQuantity": float,
-            "quantityReceived": float,
-        },
-        convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
-    )
+    if bsdasri_data is None:
+        logger.info("Pas de données BSDASRI trouvées pour le siret")
+        return no_update
 
     layout = create_bs_components_layouts(
-        bsdasri_data_df,
-        None,
-        siret,
+        bsdasri_data,
+        company_data,
         [
             "BS DASRI émis et corrigés",
             "Quantité de DASRI en tonnes",
@@ -454,28 +440,13 @@ def populate_bsdasri_components(company_data: str, bsdasri_data: str):
 )
 def populate_bsvhu_components(company_data: str, bsvhu_data: str):
 
-    company_data = json.loads(company_data)
-    siret = company_data["siret"]
-
-    if bsvhu_data is None or len(bsvhu_data) == 0:
-        logger.info("Pas de données BSDA trouvées pour le siret %s", siret)
-        return [], [], []
-
-    bsvhu_data_df = pd.read_json(
-        bsvhu_data["bsvhu_data_df"],
-        dtype={
-            "emitterCompanySiret": str,
-            "recipientCompanySiret": str,
-            "wasteDetailsQuantity": float,
-            "quantityReceived": float,
-        },
-        convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
-    )
+    if bsvhu_data is None:
+        logger.info("Pas de données BSDA trouvées pour le siret")
+        return no_update
 
     layout = create_bs_components_layouts(
-        bsvhu_data_df,
-        None,
-        siret,
+        bsvhu_data,
+        company_data,
         [
             "BS VHU émis et corrigés",
             "Quantité de VHU en tonnes",
@@ -496,10 +467,11 @@ def populate_bsvhu_components(company_data: str, bsvhu_data: str):
         Input("bsff-data", "data"),
         Input("bsdasri-data", "data"),
         Input("bsvhu-data", "data"),
+        Input("additional-data", "data"),
     ),
 )
 def populate_complementary_figures_components(*args):
-    layout = create_bs_refusal_component(*args)
+    layout = create_complementary_figure_components(*args)
     return layout
 
 
@@ -518,3 +490,44 @@ def populate_onsite_waste_components(*args):
     layout = create_onsite_waste_components(*args)
 
     return layout
+
+
+@callback(
+    output=(Output("input-output-waste-data-table", "children"),),
+    inputs=(
+        Input("company-data", "data"),
+        Input("bsdd-data", "data"),
+        Input("bsda-data", "data"),
+        Input("bsff-data", "data"),
+        Input("bsdasri-data", "data"),
+        Input("bsvhu-data", "data"),
+    ),
+)
+def populate_waste_input_output_table(*args):
+    layout = create_waste_input_output_table_component(*args)
+
+    return layout
+
+
+@callback(
+    Output("download-df-csv", "data"),
+    Input({"type": "download-date-outliers", "index": ALL}, "n_clicks"),
+    State("additional-data", "data"),
+    prevent_initial_call=True,
+)
+def handle_download_outliers_data(nclicks, additional_data):
+
+    if any(e is not None for e in nclicks):
+        trigger = list(callback_context.triggered_prop_ids.values())[0]
+        download_request = trigger["type"]
+        bsdd_type = trigger["index"]
+        if download_request == "download-date-outliers":
+            date_outliers = additional_data["date_outliers"][bsdd_type]
+
+            df = pd.concat([pd.read_json(v) for v in date_outliers.values()])
+
+        return dcc.send_data_frame(
+            df.to_csv, f"{bsdd_type}_donnees_aberrantes.csv", index=False
+        )
+    else:
+        raise PreventUpdate

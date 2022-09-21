@@ -10,7 +10,8 @@ select
     "emitterWasteWeightValue" as "wasteDetailsQuantity",
     "destinationReceptionWasteWeightValue" as "quantityReceived",
     "wasteCode",
-    "status"
+    "status",
+    "transporterTransportMode"
 from
     "default$default"."Bsdasri" 
 where
