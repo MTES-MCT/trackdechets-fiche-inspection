@@ -250,7 +250,7 @@ class StockComponent(FigureComponent):
         fig = go.Figure(data=[incoming_line, outgoing_line])
 
         fig.update_layout(
-            margin={"t": 20, "l": 30, "r": 5},
+            margin={"t": 20, "l": 35, "r": 5},
             legend={"orientation": "h", "y": -0.1, "x": 0.5},
             legend_font_size=11,
             showlegend=True,

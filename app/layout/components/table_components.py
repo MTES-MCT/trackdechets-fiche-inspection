@@ -1,7 +1,8 @@
 from typing import Dict
 import pandas as pd
 from .base_component import BaseComponent
-from dash import dcc, dash_table, html
+from dash import dash_table
+from .utils import format_number_str
 
 
 class InputOutputWasteTableComponent(BaseComponent):
@@ -49,7 +50,9 @@ class InputOutputWasteTableComponent(BaseComponent):
         )
 
         final_df = final_df[final_df["quantityReceived"] > 0]
-
+        final_df["quantityReceived"] = final_df["quantityReceived"].apply(
+            format_number_str, precision=2
+        )
         self.preprocessed_df = (
             final_df[
                 ["wasteCode", "description", "entrant/sortant", "quantityReceived"]

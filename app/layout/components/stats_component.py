@@ -281,8 +281,8 @@ class StorageStatsComponent(BaseComponent):
         stock_by_waste_code.sort_values(ascending=False, inplace=True)
 
         stock_by_waste_code = stock_by_waste_code[stock_by_waste_code > 0]
-        total_stock = stock_by_waste_code.sum()
-
+        total_stock = format_number_str(stock_by_waste_code.sum(), precision=0)
+        stock_by_waste_code = stock_by_waste_code.apply(format_number_str, precision=0)
         stock_by_waste_code = pd.merge(
             stock_by_waste_code,
             self.waste_codes_df,
@@ -313,11 +313,11 @@ class StorageStatsComponent(BaseComponent):
                 html.Div(
                     [
                         html.Div(
-                            f"{row.quantityReceived:.2f}t",
+                            f"{row.quantityReceived}t",
                             className="sc-quantity-value",
                         ),
                         html.Div(
-                            row.Index + " - " + row.description,
+                            str(row.Index) + " - " + str(row.description),
                             className="sc-waste-code",
                         ),
                     ],
@@ -329,7 +329,7 @@ class StorageStatsComponent(BaseComponent):
             html.Div(
                 [
                     html.Div(
-                        [html.Span(f"{self.total_stock:.0f}t"), "de déchets dangereux"],
+                        [html.Span(f"{self.total_stock}t"), "de déchets dangereux"],
                         id="sc-total-stock",
                     ),
                     html.Div(tops_divs, id="sc-top-waste-codes"),
@@ -462,7 +462,7 @@ class AdditionalInfoComponent(BaseComponent):
                 html.Li(
                     [
                         html.Span(f"{bs_type} : ", className="fr-text--lg"),
-                        f"{len(outlier_data)} quantité(s) incohérente(s) (exemple de valeur : {outlier_data.quantityReceived.sort_values(ascending=False).head(1).item()} tonnes)",
+                        f"{len(outlier_data)} quantité(s) incohérente(s) (exemple de valeur : {format_number_str(outlier_data.quantityReceived.sort_values(ascending=False).head(1).item(),precision=0)} tonnes)",
                     ],
                     className="fr-text--sm sc-date-outlier-example",
                 )
