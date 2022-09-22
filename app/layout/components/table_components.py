@@ -76,13 +76,35 @@ class InputOutputWasteTableComponent(BaseComponent):
         self.component_layout.append(
             dash_table.DataTable(
                 data=self.preprocessed_df.to_dict("records"),
-                columns=[{"id": c, "name": c} for c in self.preprocessed_df.columns],
+                columns=[
+                    {"id": c, "name": c, "selectable": False}
+                    for c in self.preprocessed_df.columns
+                ],
+                cell_selectable=False,
                 page_size=1000000,
                 style_cell={
                     "overflow": "hidden",
                     "textOverflow": "ellipsis",
                     "maxWidth": 0,
                 },
+                style_data_conditional=[
+                    {
+                        "if": {
+                            "column_id": "entrant/sortant",
+                            "filter_query": "{entrant/sortant} = 'entrant'",
+                        },
+                        "color": "#10ac84",
+                        "font-weight": 700,
+                    },
+                    {
+                        "if": {
+                            "column_id": "entrant/sortant",
+                            "filter_query": "{entrant/sortant} = 'sortant'",
+                        },
+                        "color": "#e55039",
+                        "font-weight": 700,
+                    },
+                ],
             )
         )
 
