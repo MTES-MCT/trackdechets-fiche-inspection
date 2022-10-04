@@ -10,15 +10,18 @@ pandas = "*"
 sqlalchemy = ">=1.4.0"
 psycopg2-binary = "*"
 dash_bootstrap_components = "*"
-flask_caching = "*"
-python-dateutil = "*"
 gunicorn = "*"
 python-dotenv = "*"
-datetime = "*"
 dash-auth = "*"
+geopandas = "*"
 
 [dev-packages]
 jupyter = "*"
+black = "*"
+ipython = "*"
+folium = "*"
+mapclassify = "*"
+isort = "*"
 
 [requires]
 python_version = "3.10"

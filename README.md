@@ -29,7 +29,7 @@ pipenv install
 4. Démarrez l'application
 
 ```bash
-pipenv run gunicorn --bind 0.0.0.0:8700 app:server
+pipenv run run.py
 ```
 
 ### Notes de versions
