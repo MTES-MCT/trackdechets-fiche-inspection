@@ -1,5 +1,5 @@
-import plotly.io as pio
 import plotly.graph_objects as go
+import plotly.io as pio
 
 # Override the 'none' template
 pio.templates["gouv"] = go.layout.Template(

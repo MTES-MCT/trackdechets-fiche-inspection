@@ -18,6 +18,25 @@ def make_query(
     dtypes: dict[str, Any] = None,
     **format_arguments,
 ) -> pd.DataFrame:
+    """Make a SQL query using the sql file corresponding to the given sql query name.
+
+    Parameters
+    ----------
+    sql_query_name : str
+        Name of the sql file (without the .sql extension).
+    date_columns : list of str
+        Names of columns to parse as dates in pandas (time-zone aware dates are casted to UTC).
+    dtypes: dict
+        Dict mapping column name to corresponding dtype.
+    format_arguments: kwargs
+        Additional format arguments to pass to the SQL query.
+
+    Returns
+    -------
+    DataFrame
+        DataFrame with the result of the query.
+    """
+
     sql_query_str = (
         (SQL_QUERIES_PATH / f"{sql_query_name}.sql")
         .read_text()
@@ -36,6 +55,19 @@ def make_query(
 
 
 def load_departements_regions_data() -> pd.DataFrame:
+    """Load geographical data (départements and regions) and returns it as a DataFrame.
+
+    Columns included are :
+    - code région
+    - libellé region
+    - code département
+    - libellé département
+
+    Returns
+    -------
+    DataFrame
+        DataFrame with the regions and départements data.
+    """
 
     df_departements = pd.read_csv(
         STATIC_FILES_PATH / "departement_2022.csv", dtype="str"
@@ -55,6 +87,17 @@ def load_departements_regions_data() -> pd.DataFrame:
 
 
 def load_waste_code_data() -> pd.DataFrame:
+    """Load the nomenclature of waste and returns it as a DataFrame.
+
+    Columns included are :
+    - code
+    - description
+
+    Returns
+    -------
+    DataFrame
+        DataFrame with the the nomenclature of waste.
+    """
 
     df = pd.read_csv(
         STATIC_FILES_PATH / "code_dechets.csv", dtype="str", index_col="code"
@@ -65,6 +108,18 @@ def load_waste_code_data() -> pd.DataFrame:
 
 
 def load_and_preprocess_regions_geographical_data() -> gpd.GeoDataFrame:
+    """Load the geojson of french regions, transform it to group overseas territories near metropolitan territory
+    and returns it as a DataFrame.
+
+    Columns included are :
+    - code région
+    - geometry
+
+    Returns
+    -------
+    DataFrame
+        GeoDataFrame with the the nomenclature of waste.
+    """
 
     gdf = gpd.read_file(STATIC_FILES_PATH / "regions.geojson")
 

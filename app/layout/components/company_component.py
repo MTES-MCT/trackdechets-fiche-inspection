@@ -1,13 +1,31 @@
-from argparse import ArgumentError
 from datetime import datetime, timedelta
 from typing import Dict
 from zoneinfo import ZoneInfo
+
 from dash import html
 
 from app.layout.components.base_component import BaseComponent
 
 
 class CompanyComponent(BaseComponent):
+    """
+    Component that displays general informations about the company such as:
+    - Name of the establishment;
+    - Address;
+    - Company profile.
+    - Date range of data displayed.
+
+
+    Parameters
+    ----------
+    company_data : dict
+        Dict with company general information.
+
+    Attributes
+    ----------
+    company_types_mapping: dict
+        Dict that map company profile to readable (in french) profiles names.
+    """
 
     company_types_mapping = {
         "COLLECTOR": "Tri Transit Regroupement (TTR)",
@@ -27,6 +45,7 @@ class CompanyComponent(BaseComponent):
         self.layout = None
 
     def create_layout(self) -> list:
+
         company_address = self.company_data["address"]
         company_siret = self.company_data["siret"]
 
@@ -67,6 +86,16 @@ class CompanyComponent(BaseComponent):
 
 
 class ReceiptAgrementsComponent(BaseComponent):
+    """Component that displays informations about the company receipts and agreements.
+
+    Parameters
+    ----------
+    receipts_agreements_data : dict
+        Dict with keys being the name of the receipt/agreement and values being DataFrames
+        with one line per receipt/agreement (usually there is only one receipt for a receipt type for an establishment but
+        there might be more).
+    """
+
     def __init__(self, receipts_agreements_data: Dict[str, str]) -> None:
 
         self.receipts_agreements_data = receipts_agreements_data

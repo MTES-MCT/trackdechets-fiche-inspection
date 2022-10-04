@@ -1,15 +1,17 @@
 import json
 import logging
-from typing import List
+from typing import Dict, List
 
 import dash_bootstrap_components as dbc
 import pandas as pd
+from dash import dcc
+from dash.exceptions import PreventUpdate
+
 from app.data.data_extract import (
     load_and_preprocess_regions_geographical_data,
     load_departements_regions_data,
     load_waste_code_data,
 )
-
 from app.layout.components.company_component import (
     CompanyComponent,
     ReceiptAgrementsComponent,
@@ -26,10 +28,7 @@ from app.layout.components.stats_component import (
     BSStatsComponent,
     StorageStatsComponent,
 )
-from dash import dcc, no_update
-from dash.exceptions import PreventUpdate
-
-from app.layout.components.table_components import InputOutputWasteTableComponent
+from app.layout.components.table_component import InputOutputWasteTableComponent
 
 logger = logging.getLogger()
 
@@ -38,7 +37,26 @@ REGIONS_GEODATA = load_and_preprocess_regions_geographical_data()
 WASTE_CODES_DATA = load_waste_code_data()
 
 
-def create_company_infos(company_data, receipts_agreements_data):
+def create_company_infos(
+    company_data: Dict[str, str], receipts_agreements_data: Dict[str, str]
+) -> list:
+    """Creates the components about company (general information and receipts/agreements info) and returns layout.
+
+    Parameters
+    ----------
+    company_data : dict
+        Dict with company general information.
+    receipts_agreements_data : dict
+        Dict with keys being the name of the receipt/agreement and values being DataFrames
+        with one line per receipt/agreement (usually there is only one receipt for a receipt type for an establishment but
+        there might be more).
+
+    Returns
+    -------
+    list of dash components
+        Layout to insert into main layout.
+    """
+
     company_component = CompanyComponent(company_data=company_data)
 
     receipts_agreements_component = ReceiptAgrementsComponent(receipts_agreements_data)
@@ -89,7 +107,30 @@ def create_bs_components_layouts(
     company_data_str: str,
     components_titles: List[str],
     components_ids: List[str],
-) -> tuple:
+) -> list:
+    """Creates the components about a type of 'bordereau' and returns layout with the three related component.
+
+    Parameters
+    ----------
+    bs_data: str
+        JSON-serialized DataFrame containing data for a given 'bordereau' type.
+    company_data_str : str
+        Serialized company data.
+    components_titles : list of str
+        Titles of the three different components in the order they appears in the layout.
+    components_ids : list of str
+        ids of the of the three different components in the order they appears in the layout.
+
+    Returns
+    -------
+    list of dash components
+        Layout to insert into main layout.
+
+    Raises
+    ------
+    PreventUpdate
+        If all components are empty after data processing.
+    """
 
     company_data = json.loads(company_data_str)
     siret = company_data["siret"]
@@ -187,6 +228,31 @@ def create_complementary_figure_components(
     bsvhu_data: str,
     additional_data: str,
 ):
+    """Creates the components about refused 'bordereaux' and complementary informations about outliers
+    and returns layout.
+
+    Parameters
+    ----------
+    company_data : str
+        Serialized company data.
+    bsdd_data: str
+        JSON-serialized DataFrame containing data for BSDDs.
+    bsda_data: str
+        JSON-serialized DataFrame containing data for BSDAs.
+    bsff_data: str
+        JSON-serialized DataFrame containing data for BSFFs.
+    bsdasri_data: str
+        JSON-serialized DataFrame containing data for BSDASRIs.
+    bsvhu_data: str
+        JSON-serialized DataFrame containing data for BSVHUs.
+    additional_data : str
+        JSON-serialized DataFrame containing outliers data as dicts of DataFrames.
+
+    Returns
+    -------
+    list of dash components
+        Layout to insert into main layout.
+    """
 
     final_layout = []
 
@@ -260,7 +326,9 @@ def create_complementary_figure_components(
                     )
 
         additional_info_component = AdditionalInfoComponent(
-            "Informations complémentaires", siret=siret, additional_data=additional_data
+            "Informations complémentaires",
+            company_siret=siret,
+            additional_data=additional_data,
         )
         final_layout.append(
             dbc.Col(
@@ -284,6 +352,28 @@ def create_onsite_waste_components(
     bsdasri_data: str,
     bsvhu_data: str,
 ):
+    """Creates the components about on site wastes (three components).
+
+    Parameters
+    ----------
+    company_data : str
+        Serialized company data.
+    bsdd_data: str
+        JSON-serialized DataFrame containing data for BSDDs.
+    bsda_data: str
+        JSON-serialized DataFrame containing data for BSDAs.
+    bsff_data: str
+        JSON-serialized DataFrame containing data for BSFFs.
+    bsdasri_data: str
+        JSON-serialized DataFrame containing data for BSDASRIs.
+    bsvhu_data: str
+        JSON-serialized DataFrame containing data for BSVHUs.
+
+    Returns
+    -------
+    list of dash components
+        Layout to insert into main layout.
+    """
 
     company_data = json.loads(company_data)
     siret = company_data["siret"]
@@ -380,7 +470,30 @@ def create_waste_input_output_table_component(
     bsdasri_data: str,
     bsvhu_data: str,
 ):
+    """Creates the table component with the list of inbound and outbound wastes.
 
+    Parameters
+    ----------
+    company_data : str
+        Serialized company data.
+    bsdd_data: str
+        JSON-serialized DataFrame containing data for BSDDs.
+    bsda_data: str
+        JSON-serialized DataFrame containing data for BSDAs.
+    bsff_data: str
+        JSON-serialized DataFrame containing data for BSFFs.
+    bsdasri_data: str
+        JSON-serialized DataFrame containing data for BSDASRIs.
+    bsvhu_data: str
+        JSON-serialized DataFrame containing data for BSVHUs.
+
+
+    Returns
+    -------
+    list of dash components
+        Layout to insert into main layout.
+
+    """
     company_data = json.loads(company_data)
     siret = company_data["siret"]
 

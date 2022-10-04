@@ -5,9 +5,10 @@ import locale
 from os import getenv
 
 import dash
-import dash_bootstrap_components as dbc
-from app.layout.layout_factory import get_layout
 import dash_auth
+import dash_bootstrap_components as dbc
+
+from app.layout.layout_factory import get_layout
 
 locale.setlocale(locale.LC_ALL, "fr_FR")
 

@@ -1,11 +1,26 @@
 from typing import Dict
+
 import pandas as pd
-from .base_component import BaseComponent
 from dash import dash_table
+
+from .base_component import BaseComponent
 from .utils import format_number_str
 
 
 class InputOutputWasteTableComponent(BaseComponent):
+    """Component that displays an exhaustive tables with input and output wastes classified by waste codes.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    bs_data_dfs: dict
+        Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+    waste_codes_df: DataFrame
+        DataFrame containing list of waste codes with their descriptions.
+    """
     def __init__(
         self,
         component_title: str,

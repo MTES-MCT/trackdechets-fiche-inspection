@@ -1,23 +1,31 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, final
-from functools import reduce
+from typing import Dict
 from zoneinfo import ZoneInfo
 
 import geopandas as gpd
 import pandas as pd
 import plotly.graph_objects as go
-from dash import dcc, html
-
-from .utils import format_number_str, get_code_departement
+from dash import dcc
 
 from .base_component import BaseComponent
+from .utils import format_number_str, get_code_departement
 
 logger = logging.getLogger()
 
 
 class FigureComponent(BaseComponent):
+    """Base Figure Component class. A Figure Component is a Component with a Plotly Figure as its main element.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    """
+
     def __init__(self, component_title: str, company_siret: str) -> None:
         super().__init__(component_title, company_siret)
 
@@ -26,12 +34,14 @@ class FigureComponent(BaseComponent):
         self.component_layout = []
 
     def _add_figure_block(self) -> None:
+        """Adds the block containing the Plotly Figure to the component layout."""
 
         self._create_figure()
         graph = dcc.Graph(figure=self.figure, config=dict(locale="fr"), responsive=True)
         self.component_layout.append(graph)
 
     def _create_figure(self) -> None:
+        """Contains the logic to create the Plotly Figure."""
         raise NotImplementedError
 
     def create_layout(self) -> list:
@@ -47,6 +57,20 @@ class FigureComponent(BaseComponent):
 
 
 class BSCreatedAndRevisedComponent(FigureComponent):
+    """Component with a Bar Figure of created and revised 'bordereaux'.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    bs_data: DataFrame
+        DataFrame containing data for a given 'bordereau' type.
+    bs_revised_data: DataFrame
+        DataFrame containing list of revised 'bordereaux' for a given 'bordereau' type.
+    """
+
     def __init__(
         self,
         component_title: str,
@@ -62,7 +86,7 @@ class BSCreatedAndRevisedComponent(FigureComponent):
         self.bs_revised_by_month = None
 
     def _preprocess_bs_data(self) -> None:
-
+        """Preprocess raw 'bordereaux' data to prepare it for plotting."""
         bs_data = self.bs_data
 
         bs_emitted_by_month = (
@@ -74,7 +98,7 @@ class BSCreatedAndRevisedComponent(FigureComponent):
         self.bs_emitted_by_month = bs_emitted_by_month
 
     def _preprocess_bs_revised_data(self) -> None:
-
+        """Preprocess raw revised 'bordereaux' data to prepare it for plotting."""
         bs_revised_data = self.bs_revised_data
 
         bs_revised_by_month = bs_revised_data.groupby(
@@ -163,6 +187,18 @@ class BSCreatedAndRevisedComponent(FigureComponent):
 
 
 class StockComponent(FigureComponent):
+    """Component with a Scatter Figure of inbound and outbound waste quantity for a particular 'bordereau' type.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    bs_data: DataFrame
+        DataFrame containing data for a given 'bordereau' type.
+    """
+
     def __init__(
         self, component_title: str, company_siret: str, bs_data: pd.DataFrame
     ) -> None:
@@ -282,6 +318,18 @@ class StockComponent(FigureComponent):
 
 
 class BSRefusalsComponent(FigureComponent):
+    """Component with a Scatter Figure counting the number of refusals by 'bordereau' type.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    bs_data_dfs: dict
+        Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+    """
+
     def __init__(
         self,
         component_title: str,
@@ -370,6 +418,20 @@ class BSRefusalsComponent(FigureComponent):
 
 
 class WasteOriginsComponent(FigureComponent):
+    """Component with a bar figure representing the quantity of waste received by départements (only TOP 6).
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    bs_data_dfs: dict
+        Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+    departements_regions_df: DataFrame
+        Static data about regions and départements with their codes.
+    """
+
     def __init__(
         self,
         component_title: str,
@@ -383,7 +445,7 @@ class WasteOriginsComponent(FigureComponent):
 
         self.preprocessed_serie = None
 
-    def _preprocess_bs_data(self) -> None:
+    def _preprocess_data(self) -> None:
 
         if len(self.bs_data_dfs) == 0:
             return
@@ -484,13 +546,29 @@ class WasteOriginsComponent(FigureComponent):
 
     def create_layout(self) -> list:
 
-        self._preprocess_bs_data()
+        self._preprocess_data()
         super().create_layout()
 
         return self.component_layout
 
 
 class WasteOriginsMapComponent(FigureComponent):
+    """Component with a bubble map figure representing the quantity of waste received by regions.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    bs_data_dfs: dict
+        Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+    departements_regions_df: DataFrame
+        Static data about regions and départements with their codes.
+    regions_geodata: GeoDataFrame
+        GeoDataFrame including regions geometries.
+    """
+
     def __init__(
         self,
         component_title: str,
@@ -507,7 +585,7 @@ class WasteOriginsMapComponent(FigureComponent):
 
         self.preprocessed_df = None
 
-    def _preprocess_bs_data(self) -> None:
+    def _preprocess_data(self) -> None:
 
         if len(self.bs_data_dfs) == 0:
             return
@@ -603,7 +681,7 @@ class WasteOriginsMapComponent(FigureComponent):
 
     def create_layout(self) -> list:
 
-        self._preprocess_bs_data()
+        self._preprocess_data()
         super().create_layout()
 
         return self.component_layout

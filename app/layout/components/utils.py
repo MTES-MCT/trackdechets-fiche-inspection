@@ -1,23 +1,27 @@
 import re
-from typing import List
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 
-def get_code_departement(code_postal: str):
-    if pd.isna(code_postal):
+def get_code_departement(postal_code: str) -> str:
+    """Take a postal code and returns the département code.
+    """
+    if pd.isna(postal_code):
         return np.nan
-    if 20000 <= int(code_postal) < 21000:
-        if int(code_postal) <= 20190:
+    if 20000 <= int(postal_code) < 21000:
+        if int(postal_code) <= 20190:
             return "2A"
         else:
             return "2B"
-    if int(code_postal) > 97000:
-        return code_postal[:3]
+    if int(postal_code) > 97000:
+        return postal_code[:3]
 
-    return code_postal[:2]
+    return postal_code[:2]
 
 
 def format_number_str(input_number: float, precision: int = 2) -> str:
+    """Format a float to a string with thousands separated by space and rounding it at the given precision.
+    """
     input_number = round(input_number, precision)
     return re.sub(r"\.0+", "", "{:,}".format(input_number).replace(",", " "))

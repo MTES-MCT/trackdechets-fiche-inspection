@@ -5,6 +5,19 @@ from zoneinfo import ZoneInfo
 
 import dash_bootstrap_components as dbc
 import pandas as pd
+from dash import (
+    ALL,
+    Input,
+    Output,
+    State,
+    callback,
+    callback_context,
+    dcc,
+    html,
+    no_update,
+)
+from dash.exceptions import PreventUpdate
+
 from app.data.data_extract import make_query
 from app.data.utils import get_outliers_datetimes_df, get_quantity_outliers
 from app.layout.components_factory import (
@@ -14,19 +27,6 @@ from app.layout.components_factory import (
     create_onsite_waste_components,
     create_waste_input_output_table_component,
 )
-from dash import (
-    MATCH,
-    Input,
-    Output,
-    State,
-    callback,
-    dcc,
-    html,
-    no_update,
-    ALL,
-    callback_context,
-)
-from dash.exceptions import PreventUpdate
 
 logger = logging.getLogger()
 

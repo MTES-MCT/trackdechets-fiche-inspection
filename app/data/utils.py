@@ -1,10 +1,27 @@
 from typing import Dict, List, Tuple
+
 import pandas as pd
 
 
 def get_outliers_datetimes_df(
     df: pd.DataFrame, date_columns: List[str]
 ) -> Tuple[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    """For a given DataFrame, separate lines with date outliers
+    from lines with consistent (parsable) dates in provided list of date columns.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame with raw (str) date data.
+    date_columns : list of str
+        Names of columns to parse as dates in pandas (time-zone aware dates are casted to UTC).
+
+    Returns
+    -------
+    Tuple consisting of :
+    1. DataFrame with consistent dates.
+    2. Dict with keys being date column names and values being the DataFrame's lines with inconsistent date for this column.
+    """
     df = df.copy()
     outliers = {}
     idx_with_outliers = set()
@@ -26,6 +43,21 @@ def get_outliers_datetimes_df(
 
 
 def get_quantity_outliers(df: pd.DataFrame, bs_type: str) -> pd.DataFrame:
+    """Filter out lines from 'bordereau' DataFrame with inconsistent received quantity.
+    The rules to identify outliers in received quantity are business rules and may be tweaked in the future.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame with 'bordereau' data.
+    bs_type : str
+        Name of the 'bordereau' (BSDD, BSDA, BSFF, BSVHU or BSDASRI).
+
+    Returns
+    -------
+    DataFrame
+        DataFrame with lines with received quantity outliers removed.
+    """
 
     df = df.copy()
     if bs_type in ["BSDD", "BSDA"]:

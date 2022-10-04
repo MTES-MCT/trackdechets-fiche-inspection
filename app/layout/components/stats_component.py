@@ -3,12 +3,27 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
+from dash import html
+
 from .base_component import BaseComponent
 from .utils import format_number_str
-from dash import html, dcc
 
 
 class BSStatsComponent(BaseComponent):
+    """Component that displays aggregated data about 'bordereaux' and estimations of the onsite waste stock.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    bs_data: DataFrame
+        DataFrame containing data for a given 'bordereau' type.
+    bs_revised_data: DataFrame
+        DataFrame containing list of revised 'bordereaux' for a given 'bordereau' type.
+    """
+
     def __init__(
         self,
         component_title: str,
@@ -31,7 +46,7 @@ class BSStatsComponent(BaseComponent):
         self.theorical_stock = None
         self.fraction_outgoing = None
 
-    def _check_empty_data(self) -> bool:
+    def _check_data_empty(self) -> bool:
 
         bs_data = self.bs_data
         siret = self.company_siret
@@ -47,7 +62,7 @@ class BSStatsComponent(BaseComponent):
         self.is_component_empty = False
         return False
 
-    def _create_stats(self) -> None:
+    def _preprocess_data(self) -> None:
 
         one_year_ago = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-01")
 
@@ -231,17 +246,31 @@ class BSStatsComponent(BaseComponent):
     def create_layout(self) -> list:
         self._add_component_title()
 
-        if self._check_empty_data():
+        if self._check_data_empty():
             self._add_empty_block()
             return self.component_layout
 
-        self._create_stats()
+        self._preprocess_data()
         self._add_stats()
 
         return self.component_layout
 
 
 class StorageStatsComponent(BaseComponent):
+    """Component that displays waste stock on site by waste codes (TOP 4) and total stock in tons.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    bs_data_dfs: dict
+        Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+    waste_codes_df: DataFrame
+        DataFrame containing list of waste codes with their descriptions.
+    """
+
     def __init__(
         self,
         component_title: str,
@@ -295,7 +324,7 @@ class StorageStatsComponent(BaseComponent):
         self.stock_by_waste_code = stock_by_waste_code
         self.total_stock = total_stock
 
-    def _check_empty_data(self) -> bool:
+    def _check_data_empty(self) -> bool:
         if (len(self.stock_by_waste_code) == 0) or self.stock_by_waste_code[
             "quantityReceived"
         ].isna().all():
@@ -342,7 +371,7 @@ class StorageStatsComponent(BaseComponent):
         self._add_component_title()
         self._preprocess_data()
 
-        if self._check_empty_data():
+        if self._check_data_empty():
             self._add_empty_block()
             return self.component_layout
 
@@ -352,14 +381,27 @@ class StorageStatsComponent(BaseComponent):
 
 
 class AdditionalInfoComponent(BaseComponent):
+    """Component that displays additional informations like outliers quantities or inconsistent dates.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    additional_data: dict
+        dict with additional data. The schema of the dict is like:
+        {'date_outliers': {'BSDD': {'processedAt':some_DataFrame, 'sentAt': some_DataFrame}}, 'quantity_outliers': {'BSDD': some_DataFrame, 'BSDA': some_DataFrame, 'BSDASRI': some_DataFrame}}
+    """
+
     def __init__(
         self,
         component_title: str,
-        siret: str,
+        company_siret: str,
         additional_data: Dict[str, Dict[str, pd.DataFrame]],
     ) -> None:
 
-        super().__init__(component_title, siret)
+        super().__init__(component_title, company_siret)
 
         self.additional_data = additional_data
 
@@ -398,6 +440,7 @@ class AdditionalInfoComponent(BaseComponent):
         self.quantity_outliers_data = self.additional_data["quantity_outliers"]
 
     def _add_date_outliers_layout(self) -> None:
+        """Create and add the layout for date outliers."""
 
         data_outliers_bs_list_layout = []
         for bs_type, outlier_data in self.date_outliers_data.items():
@@ -455,6 +498,8 @@ class AdditionalInfoComponent(BaseComponent):
         self.component_layout.append(date_outliers_layout)
 
     def _add_quantity_outliers_layout(self) -> None:
+        """Create and add the layout for quantity outliers."""
+
         quantity_outliers_bs_list_layout = []
         for bs_type, outlier_data in self.quantity_outliers_data.items():
 
