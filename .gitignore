@@ -1,6 +1,7 @@
 *.sh
 .env
-./*.csv
 .idea
 cache
 __pycache__
+.vscode
+.DS_Store
