@@ -67,7 +67,7 @@ def create_company_infos(
                 dbc.Col(
                     company_component.create_layout(),
                     id="company-details",
-                    lg=4,
+                    lg=3,
                     md=5,
                     sm=12,
                     className="col-print",
@@ -75,7 +75,7 @@ def create_company_infos(
                 dbc.Col(
                     receipts_agreements_component.create_layout(),
                     id="receipts-agrements-details",
-                    lg=4,
+                    lg=3,
                     md=5,
                     sm=12,
                     className="col-print",
@@ -91,7 +91,7 @@ Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, m
 - les annexes 1 (petites quantités)""",
                         id="general-infos",
                     ),
-                    lg=4,
+                    lg=3,
                     md=5,
                     sm=12,
                     className="col-print",
@@ -191,7 +191,7 @@ def create_bs_components_layouts(
                 dbc.Col(
                     bs_created_revised_component_layout,
                     id=components_ids[0],
-                    lg=4,
+                    lg=3,
                     md=5,
                     sm=12,
                     class_name="col-framed col-print",
@@ -199,7 +199,7 @@ def create_bs_components_layouts(
                 dbc.Col(
                     stock_component_layout,
                     id=components_ids[1],
-                    lg=4,
+                    lg=3,
                     md=5,
                     sm=12,
                     class_name="col-framed col-print",
@@ -207,7 +207,7 @@ def create_bs_components_layouts(
                 dbc.Col(
                     annual_stats_layout,
                     id=components_ids[2],
-                    lg=4,
+                    lg=3,
                     md=5,
                     sm=12,
                     class_name="col-framed col-print",
@@ -299,7 +299,7 @@ def create_complementary_figure_components(
             dbc.Col(
                 bs_refusals_component.component_layout,
                 id="bs-refusal",
-                lg=4,
+                lg=3,
                 md=5,
                 sm=12,
                 class_name="col-framed  col-print",
@@ -433,7 +433,7 @@ def create_onsite_waste_components(
             [
                 dbc.Col(
                     storage_stats_component.create_layout(),
-                    lg=4,
+                    lg=3,
                     md=5,
                     sm=12,
                     id="waste-stock",
@@ -441,7 +441,7 @@ def create_onsite_waste_components(
                 ),
                 dbc.Col(
                     waste_origins_component.create_layout(),
-                    lg=4,
+                    lg=3,
                     md=5,
                     sm=12,
                     id="waste-origins",
@@ -449,7 +449,7 @@ def create_onsite_waste_components(
                 ),
                 dbc.Col(
                     waste_origins_map_component.create_layout(),
-                    lg=4,
+                    lg=3,
                     md=5,
                     sm=12,
                     id="waste-origins-map",
