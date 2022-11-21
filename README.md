@@ -1,6 +1,6 @@
 # Fiche d'inspection Trackdéchets
 
-**version 1.0**
+**version 1.1**
 
 > Application basée sur Plotly Dash consacrée à la production de fiche permettant aux inspecteurs et inspectrices de
 > l'environnement de préparer l'inspection d'un établissement avec des données issues de Trackdéchets.
@@ -33,6 +33,11 @@ pipenv run run.py
 ```
 
 ### Notes de versions
+
+**1.1 21/11/2022**
+
+- Ajout d'une option pour pouvoir imprimer la fiche inspection sans problèmes de mise en page
+- Amélioration du design du tableau présentant le détail des déchets entrants/sortants
 
 **1.0 10/09/2022**
 
