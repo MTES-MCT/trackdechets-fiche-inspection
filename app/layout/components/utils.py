@@ -5,8 +5,7 @@ import pandas as pd
 
 
 def get_code_departement(postal_code: str) -> str:
-    """Take a postal code and returns the département code.
-    """
+    """Take a postal code and returns the département code."""
     if pd.isna(postal_code):
         return np.nan
     if 20000 <= int(postal_code) < 21000:
@@ -21,7 +20,6 @@ def get_code_departement(postal_code: str) -> str:
 
 
 def format_number_str(input_number: float, precision: int = 2) -> str:
-    """Format a float to a string with thousands separated by space and rounding it at the given precision.
-    """
+    """Format a float to a string with thousands separated by space and rounding it at the given precision."""
     input_number = round(input_number, precision)
-    return re.sub(r"\.0+", "", "{:,}".format(input_number).replace(",", " "))
+    return re.sub(r"\.0$", "", "{:,}".format(input_number).replace(",", " "))
