@@ -20,16 +20,90 @@ body {
     border-style: solid;
 }
 
-input#siret {
-    width: 180px;
-    border: 1px solid grey;
-    font-size: 20px;
-    margin-left: 20px;
+
+#form-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
+
+#siret-input-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+#siret-input-container label {
+    width: fit-content;
+}
+
+#siret-input-container input {
+    max-width: 200px;
+}
+
+#siret-input-container * {
+    margin: 0 10px;
+}
+
+#layout-container.printing {
+    width: 210mm;
+    padding: 2mm;
+}
+
 
 h2 {
     color: #000091 !important;
 }
+
+#layout-container.printing #form-container {
+    display: none;
+}
+
+#layout-container.printing .col-print {
+    width: 48%;
+    margin: 1mm;
+    page-break-inside: avoid;
+}
+
+#layout-container.printing .row {
+    margin-bottom: 0;
+}
+
+#layout-container.printing h2 {
+    font-size: 20px;
+    margin-bottom: 1mm;
+    line-height: initial;
+}
+
+#layout-container.printing .page-break {
+    justify-content: center;
+    page-break-before: always;
+}
+
+#layout-container.printing #bordereaux-data-section>div:nth-child(1n+3) {
+    page-break-before: always;
+}
+
+#layout-container.printing #bordereaux-data-section {
+    page-break-before: always;
+}
+
+#layout-container.printing #stock-data-section {
+    page-break-before: always;
+}
+
+#layout-container.printing #stock-data-section h2 {
+    margin: 0;
+}
+
+#layout-container.printing .sc-outlier-date-download-button {
+    display: none;
+}
+
+
+
 
 @media (min-width: 992px) {
 
@@ -58,4 +132,3 @@ h2 {
 
 
 }
-
