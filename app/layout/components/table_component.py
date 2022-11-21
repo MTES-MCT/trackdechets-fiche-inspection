@@ -21,6 +21,7 @@ class InputOutputWasteTableComponent(BaseComponent):
     waste_codes_df: DataFrame
         DataFrame containing list of waste codes with their descriptions.
     """
+
     def __init__(
         self,
         component_title: str,
@@ -46,14 +47,18 @@ class InputOutputWasteTableComponent(BaseComponent):
 
         df = pd.concat(dfs_to_concat)
         df = df[(df.emitterCompanySiret == siret) | (df.recipientCompanySiret == siret)]
-        df["entrant/sortant"] = df.apply(
-            lambda x: "sortant" if x["emitterCompanySiret"] == siret else "entrant",
+        df["Entrant/Sortant"] = df.apply(
+            lambda x: "sortant➡️" if x["emitterCompanySiret"] == siret else "➡️entrant",
             axis=1,
         )
 
-        df_grouped = df.groupby(["wasteCode", "entrant/sortant"], as_index=False)[
-            "quantityReceived"
-        ].sum()
+        df_grouped = (
+            df.groupby(["wasteCode", "Entrant/Sortant"], as_index=False)[
+                "quantityReceived"
+            ]
+            .sum()
+            .round(2)
+        )
 
         final_df = pd.merge(
             df_grouped,
@@ -70,11 +75,15 @@ class InputOutputWasteTableComponent(BaseComponent):
         )
         self.preprocessed_df = (
             final_df[
-                ["wasteCode", "description", "entrant/sortant", "quantityReceived"]
+                ["wasteCode", "description", "Entrant/Sortant", "quantityReceived"]
             ]
-            .sort_values(by=["wasteCode", "entrant/sortant"])
+            .sort_values(by=["wasteCode", "Entrant/Sortant"])
             .rename(
-                columns={"wasteCode": "Code déchet", "quantityReceived": "Quantité (t)"}
+                columns={
+                    "wasteCode": "Code déchet",
+                    "quantityReceived": "Quantité (t)",
+                    "description": "Description",
+                }
             )
         )
 
@@ -105,21 +114,39 @@ class InputOutputWasteTableComponent(BaseComponent):
                 style_data_conditional=[
                     {
                         "if": {
-                            "column_id": "entrant/sortant",
-                            "filter_query": "{entrant/sortant} = 'entrant'",
+                            "column_id": "Entrant/Sortant",
+                            "filter_query": "{Entrant/Sortant} = '➡️entrant'",
                         },
-                        "color": "#10ac84",
                         "font-weight": 700,
                     },
                     {
                         "if": {
-                            "column_id": "entrant/sortant",
-                            "filter_query": "{entrant/sortant} = 'sortant'",
+                            "column_id": "Entrant/Sortant",
+                            "filter_query": "{Entrant/Sortant} = 'sortant➡️'",
                         },
-                        "color": "#e55039",
                         "font-weight": 700,
                     },
+                    {
+                        "if": {"column_id": "Code déchet"},
+                        "width": "115px",
+                        "maxWidth": "1155px",
+                        "text-align": "left",
+                    },
+                    {
+                        "if": {"column_id": "Entrant/Sortant"},
+                        "width": "145px",
+                        "maxWidth": "145px",
+                        "text-align": "center",
+                    },
+                    {
+                        "if": {"column_id": "Quantité (t)"},
+                        "width": "145px",
+                        "maxWidth": "145px",
+                        "font-weight": "bold",
+                    },
+                    {"if": {"column_id": "Description"}, "text-align": "left"},
                 ],
+                style_header={"text-align": "center"},
             )
         )
 

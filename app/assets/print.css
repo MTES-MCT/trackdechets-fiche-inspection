@@ -4,41 +4,6 @@
         margin: 10mm;
     }
 
-    .no_print {
-        display: none;
-    }
 
-    #layout-container{
-        width: 210mm;
-        padding: 2mm;
-    }
 
-    .col-print{
-        width: 48%;
-        margin: 2mm;
-        page-break-inside:avoid;
-    }
-
-    .row {
-        margin-bottom: 5mm;
-        justify-content: center;
-    }
-
-    #bordereaux-data-section {
-        page-break-before: always;
-    }
-
-    #stock-data-section {
-        page-break-before: always;
-    }
-
-    #stock-data-section h2 {
-        margin: 0;
-    }
-
-    .sc-outlier-date-download-button{
-        display: none;
-    }
-
-    
 }

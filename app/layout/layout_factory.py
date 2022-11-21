@@ -40,27 +40,43 @@ def get_layout() -> html.Main:
                 children=[
                     dbc.Row(
                         [
-                            dbc.Col(
+                            html.Div(
                                 [
-                                    html.Label("SIRET", htmlFor="siret"),
-                                    dcc.Input(
-                                        id="siret",
-                                        type="text",
-                                        minLength=14,
-                                        maxLength=14,
-                                        autoComplete="true",
-                                        name="siret",
-                                    ),
-                                    html.Button(
-                                        "Générer",
-                                        id="submit-siret",
+                                    html.Div(
+                                        [
+                                            html.Label(
+                                                "Entrez un SIRET :",
+                                                htmlFor="siret",
+                                                className="fr-label",
+                                            ),
+                                            dcc.Input(
+                                                id="siret",
+                                                type="text",
+                                                minLength=14,
+                                                maxLength=14,
+                                                autoComplete="true",
+                                                className="fr-input",
+                                            ),
+                                            html.Button(
+                                                "Générer",
+                                                id="submit-siret",
+                                                className="fr-btn",
+                                            ),
+                                            html.Button(
+                                                "Imprimer la fiche",
+                                                id="print-button",
+                                                disabled=True,
+                                                className="fr-btn fr-btn--secondary",
+                                            ),
+                                        ],
+                                        id="siret-input-container",
                                     ),
                                     html.Div(id="alert-container"),
                                 ],
-                                width=12,
+                                className="no_print",
+                                id="form-container",
                             ),
                         ],
-                        className="no_print",
                     ),
                     html.Div(
                         [
@@ -72,46 +88,33 @@ def get_layout() -> html.Main:
                             html.Div(id="company-infos"),
                             html.Div(
                                 [
-                                    dbc.Row(
-                                        [
-                                            html.H2(
-                                                "Données des bordereaux de suivi dématérialisés issues de Trackdéchets"
-                                            )
-                                        ]
+                                    html.H2(
+                                        "Données des bordereaux de suivi dématérialisés issues de Trackdéchets"
                                     ),
-                                    html.Div(
-                                        id="bsdd-figures",
-                                    ),
-                                    html.Div(
-                                        id="bsda-figures",
-                                    ),
-                                    html.Div(
-                                        id="bsff-figures",
-                                    ),
-                                    html.Div(
-                                        id="bsdasri-figures",
-                                    ),
-                                    html.Div(
-                                        id="bsvhu-figures",
-                                    ),
-                                    html.Div(
-                                        [],
-                                        id="complementary-figures",
-                                    ),
+                                    html.Div(id="bsdd-figures"),
+                                    html.Div(id="bsda-figures"),
+                                    html.Div(id="bsff-figures"),
+                                    html.Div(id="bsdasri-figures"),
+                                    html.Div(id="bsvhu-figures"),
+                                    html.Div([], id="complementary-figures"),
                                 ],
                                 id="bordereaux-data-section",
                             ),
                             html.Div(
                                 [
-                                    dbc.Row([html.H2("Déchets sur site (théorique)")]),
+                                    html.H2(
+                                        "Déchets sur site (théorique)",
+                                    ),
                                     html.Div(id="stock-data-figures"),
                                 ],
                                 id="stock-data-section",
+                                className="page-break",
                             ),
                             html.Div(
                                 [
-                                    dbc.Row(
-                                        [html.H2("Liste des déchets entrants/sortants")]
+                                    html.H2(
+                                        "Liste des déchets entrants/sortants",
+                                        className="page-break",
                                     ),
                                     html.Div(id="input-output-waste-data-table"),
                                 ],
@@ -119,6 +122,7 @@ def get_layout() -> html.Main:
                             ),
                         ],
                         id="main-layout-fiche",
+                        style={"display": "none"},
                     ),
                 ],
             ),
