@@ -78,51 +78,58 @@ def get_layout() -> html.Main:
                             ),
                         ],
                     ),
-                    html.Div(
-                        [
-                            dbc.Row(
-                                [
-                                    dbc.Col(id="company-name", width=12),
-                                ]
-                            ),
-                            html.Div(id="company-infos"),
-                            html.Div(
-                                [
-                                    html.H2(
-                                        "Données des bordereaux de suivi dématérialisés issues de Trackdéchets"
-                                    ),
-                                    html.Div(id="bsdd-figures"),
-                                    html.Div(id="bsda-figures"),
-                                    html.Div(id="bsff-figures"),
-                                    html.Div(id="bsdasri-figures"),
-                                    html.Div(id="bsvhu-figures"),
-                                    html.Div([], id="complementary-figures"),
-                                ],
-                                id="bordereaux-data-section",
-                            ),
-                            html.Div(
-                                [
-                                    html.H2(
-                                        "Déchets sur site (théorique)",
-                                    ),
-                                    html.Div(id="stock-data-figures"),
-                                ],
-                                id="stock-data-section",
-                                className="page-break",
-                            ),
-                            html.Div(
-                                [
-                                    html.H2(
-                                        "Liste des déchets entrants/sortants",
-                                        className="page-break",
-                                    ),
-                                    html.Div(id="input-output-waste-data-table"),
-                                ],
-                                id="input-output-waste",
-                            ),
-                        ],
-                        id="main-layout-fiche",
-                        style={"display": "none"},
+                    dcc.Loading(
+                        html.Div(
+                            [
+                                dbc.Row(
+                                    [
+                                        dbc.Col(id="company-name", width=12),
+                                    ]
+                                ),
+                                html.Div(id="company-infos"),
+                                html.Div(
+                                    [
+                                        html.H2(
+                                            "Données des bordereaux de suivi dématérialisés issues de Trackdéchets"
+                                        ),
+                                        html.Div(id="bsdd-figures"),
+                                        html.Div(id="bsda-figures"),
+                                        html.Div(id="bsff-figures"),
+                                        html.Div(id="bsdasri-figures"),
+                                        html.Div(id="bsvhu-figures"),
+                                        html.Div([], id="complementary-figures"),
+                                    ],
+                                    id="bordereaux-data-section",
+                                ),
+                                html.Div(
+                                    [
+                                        html.H2(
+                                            "Déchets sur site (théorique)",
+                                        ),
+                                        html.Div(id="stock-data-figures"),
+                                    ],
+                                    id="stock-data-section",
+                                    className="page-break",
+                                ),
+                                html.Div(
+                                    [
+                                        html.H2(
+                                            "Liste des déchets entrants/sortants",
+                                            className="page-break",
+                                        ),
+                                        html.Div(id="input-output-waste-data-table"),
+                                    ],
+                                    id="input-output-waste",
+                                ),
+                            ],
+                            id="main-layout-fiche",
+                            style={"display": "none"},
+                        ),
+                        type="circle",
+                        style={
+                            "margin-top": "5%",
+                        },
+                        color="rgb(0, 0, 145)",
                     ),
                 ],
             ),
@@ -156,6 +163,7 @@ def get_layout() -> html.Main:
         Output("main-layout-fiche", "style"),
     ],
     inputs=[Input("submit-siret", "n_clicks"), State("siret", "value")],
+    background=True,
 )
 def get_data_for_siret(n_clicks: int, siret: str):
 
