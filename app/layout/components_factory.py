@@ -4,7 +4,7 @@ from typing import Dict, List
 
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import dcc
+from dash import dcc, html
 from dash.exceptions import PreventUpdate
 
 from app.data.data_extract import (
@@ -26,9 +26,11 @@ from app.layout.components.figure_component import (
 from app.layout.components.stats_component import (
     AdditionalInfoComponent,
     BSStatsComponent,
+    ICPEItemsComponent,
     StorageStatsComponent,
 )
 from app.layout.components.table_component import InputOutputWasteTableComponent
+from app.layout.utils import load_dfs_with_config
 
 logger = logging.getLogger()
 
@@ -126,10 +128,6 @@ def create_bs_components_layouts(
     list of dash components
         Layout to insert into main layout.
 
-    Raises
-    ------
-    PreventUpdate
-        If all components are empty after data processing.
     """
 
     company_data = json.loads(company_data_str)
@@ -183,7 +181,7 @@ def create_bs_components_layouts(
     )
 
     if are_all_components_empty:
-        raise PreventUpdate
+        return [html.Div()]
 
     full_layout = [
         dbc.Row(
@@ -259,32 +257,15 @@ def create_complementary_figure_components(
     company_data = json.loads(company_data)
     siret = company_data["siret"]
 
-    dfs = {}
-    load_configs = [
-        {"name": "Déchets Dangereux", "data": bsdd_data},
-        {"name": "Amiante", "data": bsda_data},
-        {"name": "Fluides Frigo", "data": bsff_data},
-        {"name": "DASRI", "data": bsdasri_data},
-        {"name": "VHU", "data": bsvhu_data},
-    ]
-    for config in load_configs:
-
-        name = config["name"]
-        data = config["data"]
-        if data is None:
-            continue
-        data_df = data[list(data.keys())[0]]
-        bs_data_df = pd.read_json(
-            data_df,
-            dtype={
-                "emitterCompanySiret": str,
-                "recipientCompanySiret": str,
-                "wasteDetailsQuantity": float,
-                "quantityReceived": float,
-            },
-            convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
-        )
-        dfs[name] = bs_data_df
+    dfs = load_dfs_with_config(
+        [
+            {"name": "Déchets Dangereux", "data": bsdd_data},
+            {"name": "Amiante", "data": bsda_data},
+            {"name": "Fluides Frigo", "data": bsff_data},
+            {"name": "DASRI", "data": bsdasri_data},
+            {"name": "VHU", "data": bsvhu_data},
+        ]
+    )
 
     bs_refusals_component = BSRefusalsComponent(
         component_title=r"Nombre de bordereaux refusés",
@@ -330,6 +311,7 @@ def create_complementary_figure_components(
             company_siret=siret,
             additional_data=additional_data,
         )
+
         final_layout.append(
             dbc.Col(
                 additional_info_component.create_layout(),
@@ -341,7 +323,7 @@ def create_complementary_figure_components(
             )
         )
 
-    return dbc.Row(final_layout)
+    return html.Div(final_layout)
 
 
 def create_onsite_waste_components(
@@ -378,33 +360,15 @@ def create_onsite_waste_components(
     company_data = json.loads(company_data)
     siret = company_data["siret"]
 
-    dfs = {}
-    load_configs = [
-        {"name": "Déchets Dangereux", "data": bsdd_data},
-        {"name": "Amiante", "data": bsda_data},
-        {"name": "Fluides Frigo", "data": bsff_data},
-        {"name": "DASRI", "data": bsdasri_data},
-        {"name": "VHU", "data": bsvhu_data},
-    ]
-
-    for config in load_configs:
-
-        name = config["name"]
-        data = config["data"]
-        if data is None:
-            continue
-        data_df = data[list(data.keys())[0]]
-        bs_data_df = pd.read_json(
-            data_df,
-            dtype={
-                "emitterCompanySiret": str,
-                "recipientCompanySiret": str,
-                "wasteDetailsQuantity": float,
-                "quantityReceived": float,
-            },
-            convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
-        )
-        dfs[name] = bs_data_df
+    dfs = load_dfs_with_config(
+        [
+            {"name": "Déchets Dangereux", "data": bsdd_data},
+            {"name": "Amiante", "data": bsda_data},
+            {"name": "Fluides Frigo", "data": bsff_data},
+            {"name": "DASRI", "data": bsdasri_data},
+            {"name": "VHU", "data": bsvhu_data},
+        ]
+    )
 
     storage_stats_component = StorageStatsComponent(
         component_title="Déchets entreposés sur site actuellement",
@@ -413,12 +377,15 @@ def create_onsite_waste_components(
         waste_codes_df=WASTE_CODES_DATA,
     )
 
+    storage_stats_component_layout = storage_stats_component.create_layout()
+
     waste_origins_component = WasteOriginsComponent(
         component_title="Origine des déchets",
         company_siret=siret,
         bs_data_dfs=dfs,
         departements_regions_df=DEPARTEMENTS_REGION_DATA,
     )
+    waste_origins_component_layout = waste_origins_component.create_layout()
 
     waste_origins_map_component = WasteOriginsMapComponent(
         component_title="Origine des déchets",
@@ -428,11 +395,25 @@ def create_onsite_waste_components(
         regions_geodata=REGIONS_GEODATA,
     )
 
+    waste_origins_map_component_layout = waste_origins_map_component.create_layout()
+
+    are_all_components_empty = all(
+        e.is_component_empty
+        for e in [
+            storage_stats_component,
+            waste_origins_component,
+            waste_origins_map_component,
+        ]
+    )
+
+    if are_all_components_empty:
+        return [html.Div()], {"display": "block"}
+
     final_layout = [
         dbc.Row(
             [
                 dbc.Col(
-                    storage_stats_component.create_layout(),
+                    storage_stats_component_layout,
                     lg=3,
                     md=5,
                     sm=12,
@@ -440,7 +421,7 @@ def create_onsite_waste_components(
                     class_name="col-framed col-print",
                 ),
                 dbc.Col(
-                    waste_origins_component.create_layout(),
+                    waste_origins_component_layout,
                     lg=3,
                     md=5,
                     sm=12,
@@ -448,7 +429,7 @@ def create_onsite_waste_components(
                     class_name="col-framed col-print",
                 ),
                 dbc.Col(
-                    waste_origins_map_component.create_layout(),
+                    waste_origins_map_component_layout,
                     lg=3,
                     md=5,
                     sm=12,
@@ -459,7 +440,7 @@ def create_onsite_waste_components(
         ),
     ]
 
-    return final_layout
+    return final_layout, {"display": "none"}
 
 
 def create_waste_input_output_table_component(
@@ -497,33 +478,15 @@ def create_waste_input_output_table_component(
     company_data = json.loads(company_data)
     siret = company_data["siret"]
 
-    dfs = {}
-    load_configs = [
-        {"name": "Déchets Dangereux", "data": bsdd_data},
-        {"name": "Amiante", "data": bsda_data},
-        {"name": "Fluides Frigo", "data": bsff_data},
-        {"name": "DASRI", "data": bsdasri_data},
-        {"name": "VHU", "data": bsvhu_data},
-    ]
-
-    for config in load_configs:
-
-        name = config["name"]
-        data = config["data"]
-        if data is None:
-            continue
-        data_df = data[list(data.keys())[0]]
-        bs_data_df = pd.read_json(
-            data_df,
-            dtype={
-                "emitterCompanySiret": str,
-                "recipientCompanySiret": str,
-                "wasteDetailsQuantity": float,
-                "quantityReceived": float,
-            },
-            convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
-        )
-        dfs[name] = bs_data_df
+    dfs = load_dfs_with_config(
+        [
+            {"name": "Déchets Dangereux", "data": bsdd_data},
+            {"name": "Amiante", "data": bsda_data},
+            {"name": "Fluides Frigo", "data": bsff_data},
+            {"name": "DASRI", "data": bsdasri_data},
+            {"name": "VHU", "data": bsvhu_data},
+        ]
+    )
 
     input_output_waste_component = InputOutputWasteTableComponent(
         "Déchets entrants sortants par code déchet",
@@ -534,6 +497,49 @@ def create_waste_input_output_table_component(
     layout = input_output_waste_component.create_layout()
 
     if not input_output_waste_component.is_component_empty:
-        return [dbc.Row(dbc.Col(layout, lg=12, md=12, sm=12))]
+        return [dbc.Row(dbc.Col(layout, lg=12, md=12, sm=12))], {"display": "none"}
     else:
-        raise PreventUpdate
+        return [html.Div()], {"display": "block"}
+
+
+def create_icpe_components(
+    company_data: str,
+    icpe_data: str,
+    bsdd_data: str,
+    bsda_data: str,
+    bsff_data: str,
+    bsdasri_data: str,
+    bsvhu_data: str,
+):
+
+    if icpe_data is None:
+        return [html.Div()], {"display": "block"}
+
+    company_data = json.loads(company_data)
+    siret = company_data["siret"]
+
+    icpe_data = pd.read_json(icpe_data)
+
+    dfs = load_dfs_with_config(
+        [
+            {"name": "Déchets Dangereux", "data": bsdd_data},
+            {"name": "Amiante", "data": bsda_data},
+            {"name": "Fluides Frigo", "data": bsff_data},
+            {"name": "DASRI", "data": bsdasri_data},
+            {"name": "VHU", "data": bsvhu_data},
+        ]
+    )
+
+    icpe_items_component = ICPEItemsComponent(
+        "Rubriques ICPE autorisées",
+        company_siret=siret,
+        icpe_data=icpe_data,
+        bs_data_dfs=dfs,
+    )
+
+    layout = icpe_items_component.create_layout()
+
+    if not icpe_items_component.is_component_empty:
+        return [dbc.Row(dbc.Col(layout, lg=9, md=12, sm=12))], {"display": "none"}
+    else:
+        return [html.Div()], {"display": "block"}

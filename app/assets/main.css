@@ -102,7 +102,9 @@ h2 {
     display: none;
 }
 
-
+.no-data-message {
+    text-align: center;
+}
 
 
 @media (min-width: 992px) {

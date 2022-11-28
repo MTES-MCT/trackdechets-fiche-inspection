@@ -540,3 +540,96 @@ class AdditionalInfoComponent(BaseComponent):
                 self._add_quantity_outliers_layout()
 
         return self.component_layout
+
+
+class ICPEItemsComponent(BaseComponent):
+    """Component that displays list of ICPE authorized items.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    icpe_data: DataFrame
+        DataFrame containing list of ICPE authorized items
+    bs_data_dfs: dict
+        Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+
+    """
+
+    def __init__(
+        self,
+        component_title: str,
+        company_siret: str,
+        icpe_data: pd.DataFrame,
+        bs_data_dfs: Dict[str, pd.DataFrame],
+    ) -> None:
+
+        super().__init__(component_title, company_siret)
+
+        self.icpe_data = icpe_data
+
+        self.bs_data_dfs = bs_data_dfs
+
+    def _add_items_list(self) -> None:
+
+        icpe_items_li_list = []
+        for item in self.icpe_data.itertuples():
+            rubrique_str = str(item.rubrique)
+            if item.alinea is not None:
+                rubrique_str += f" {item.alinea}"
+
+            authorization_str = "Pas de volume autorisé."
+            volume = ""
+            if not pd.isna(item.volume):
+                volume = format_number_str(item.volume, precision=1)
+                authorization_str = " autorisés"
+
+            unite = ""
+            if item.unite is not None:
+                unite = item.unite
+
+            icpe_items_li_list.append(
+                html.Li(
+                    [
+                        html.Div(
+                            f"{rubrique_str} - {item.libelle_court_activite.capitalize()}",
+                            className="sc-icpe-item-title fr-text--lg",
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.Span(f"{volume}{unite}"),
+                                        authorization_str,
+                                    ],
+                                    className="sc-item-quantity-authorized",
+                                )
+                            ],
+                            className="sc-rubrique-item-details",
+                        ),
+                    ]
+                )
+            )
+
+        self.component_layout.append(
+            html.Ul(icpe_items_li_list, className="sc-icpe-item-list")
+        )
+
+    def _check_data_empty(self) -> bool:
+
+        if len(self.icpe_data) == 0:
+            self.is_component_empty = True
+            return self.is_component_empty
+
+        self.is_component_empty = False
+        return False
+
+    def create_layout(self) -> list:
+        self._add_component_title()
+
+        if not self._check_data_empty():
+            self._add_items_list()
+
+        return self.component_layout

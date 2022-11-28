@@ -7,13 +7,16 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 DATABASE_URL = os.environ["DATABASE_URL"]
-SQL_ENGINE = create_engine(DATABASE_URL)
+DWH_URL = os.environ["DWH_URL"]
+DB_ENGINE = create_engine(DATABASE_URL)
+DWH_ENGINE = create_engine(DWH_URL)
 SQL_QUERIES_PATH = Path("app/data/sql")
 STATIC_FILES_PATH = Path("app/data/static")
 
 
 def make_query(
     sql_query_name: str,
+    engine: str = "db-prod",
     date_columns: List[str] = None,
     dtypes: dict[str, Any] = None,
     **format_arguments,
@@ -37,6 +40,13 @@ def make_query(
         DataFrame with the result of the query.
     """
 
+    if engine == "db-prod":
+        con = DB_ENGINE
+    elif engine == "dwh":
+        con = DWH_ENGINE
+    else:
+        raise ValueError("engine must be either 'db-prod' or 'dwh'")
+
     sql_query_str = (
         (SQL_QUERIES_PATH / f"{sql_query_name}.sql")
         .read_text()
@@ -48,7 +58,7 @@ def make_query(
     if date_columns is not None:
         date_params = {e: {"utc": True} for e in date_columns}
     df = pd.read_sql_query(
-        sql_query_str, con=SQL_ENGINE, dtype=dtypes, parse_dates=date_params
+        sql_query_str, con=con, dtype=dtypes, parse_dates=date_params
     )
 
     return df

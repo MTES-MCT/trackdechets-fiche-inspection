@@ -1,3 +1,4 @@
+from typing import Dict, List
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import dcc, html
@@ -56,3 +57,28 @@ def add_figure(fig, fig_id: str) -> dbc.Row:
         ]
     )
     return row
+
+
+def load_dfs_with_config(load_configs: List[dict]) -> Dict[str, pd.DataFrame]:
+    dfs = {}
+
+    for config in load_configs:
+
+        name = config["name"]
+        data = config["data"]
+        if data is None:
+            continue
+        data_df = data[list(data.keys())[0]]
+        bs_data_df = pd.read_json(
+            data_df,
+            dtype={
+                "emitterCompanySiret": str,
+                "recipientCompanySiret": str,
+                "wasteDetailsQuantity": float,
+                "quantityReceived": float,
+            },
+            convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
+        )
+        dfs[name] = bs_data_df
+
+    return dfs

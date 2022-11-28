@@ -24,6 +24,7 @@ from app.layout.components_factory import (
     create_bs_components_layouts,
     create_company_infos,
     create_complementary_figure_components,
+    create_icpe_components,
     create_onsite_waste_components,
     create_waste_input_output_table_component,
 )
@@ -92,12 +93,17 @@ def get_layout() -> html.Main:
                                         html.H2(
                                             "Données des bordereaux de suivi dématérialisés issues de Trackdéchets"
                                         ),
+                                        html.Div(
+                                            "PAS DE DONNÉES POUR CET ÉTABLISSEMENT",
+                                            id="bs-no-data",
+                                            className="fr-text--lead no-data-message",
+                                        ),
                                         html.Div(id="bsdd-figures"),
                                         html.Div(id="bsda-figures"),
                                         html.Div(id="bsff-figures"),
                                         html.Div(id="bsdasri-figures"),
                                         html.Div(id="bsvhu-figures"),
-                                        html.Div([], id="complementary-figures"),
+                                        html.Div(id="complementary-figures"),
                                     ],
                                     id="bordereaux-data-section",
                                 ),
@@ -105,6 +111,11 @@ def get_layout() -> html.Main:
                                     [
                                         html.H2(
                                             "Déchets sur site (théorique)",
+                                        ),
+                                        html.Div(
+                                            "PAS DE DONNÉES POUR CET ÉTABLISSEMENT",
+                                            id="stock-no-data",
+                                            className="fr-text--lead no-data-message",
                                         ),
                                         html.Div(id="stock-data-figures"),
                                     ],
@@ -114,8 +125,28 @@ def get_layout() -> html.Main:
                                 html.Div(
                                     [
                                         html.H2(
+                                            "Donnée installation classée pour la protection de l'Environnement (ICPE)",
+                                            className="page-break",
+                                        ),
+                                        html.Div(
+                                            "PAS DE DONNÉES POUR CET ÉTABLISSEMENT",
+                                            id="icpe-no-data",
+                                            className="fr-text--lead no-data-message",
+                                        ),
+                                        html.Div(id="icpe-section"),
+                                    ],
+                                    id="icpe",
+                                ),
+                                html.Div(
+                                    [
+                                        html.H2(
                                             "Liste des déchets entrants/sortants",
                                             className="page-break",
+                                        ),
+                                        html.Div(
+                                            "PAS DE DONNÉES POUR CET ÉTABLISSEMENT",
+                                            id="input-output-no-data",
+                                            className="fr-text--lead no-data-message",
                                         ),
                                         html.Div(id="input-output-waste-data-table"),
                                     ],
@@ -126,15 +157,14 @@ def get_layout() -> html.Main:
                             style={"display": "none"},
                         ),
                         type="circle",
-                        style={
-                            "margin-top": "5%",
-                        },
+                        style={"position": "absolute", "top": "25px"},
                         color="rgb(0, 0, 145)",
                     ),
                 ],
             ),
             dcc.Store(id="company-data"),
             dcc.Store(id="receipt-agrement-data"),
+            dcc.Store(id="icpe-data"),
             dcc.Store(id="bsdd-data"),
             dcc.Store(id="bsda-data"),
             dcc.Store(id="bsff-data"),
@@ -152,6 +182,7 @@ def get_layout() -> html.Main:
         (
             Output("company-data", "data"),
             Output("receipt-agrement-data", "data"),
+            Output("icpe-data", "data"),
             Output("bsdd-data", "data"),
             Output("bsda-data", "data"),
             Output("bsff-data", "data"),
@@ -172,7 +203,7 @@ def get_data_for_siret(n_clicks: int, siret: str):
         res = []
         if siret is None or len(siret) != 14:
             return (
-                (no_update,) * 8,
+                (no_update,) * 9,
                 dbc.Alert(
                     "SIRET non conforme",
                     color="danger",
@@ -236,6 +267,13 @@ def get_data_for_siret(n_clicks: int, siret: str):
                     receipts_agreements_data[config["name"]] = data.to_json()
 
         res.append(receipts_agreements_data)
+
+        icpe_data = make_query("get_icpe_data", engine="dwh", siret=siret)
+
+        if len(icpe_data):
+            res.append(icpe_data.to_json())
+        else:
+            res.append(None)
 
         bs_dtypes = {
             "id": str,
@@ -311,7 +349,6 @@ def get_data_for_siret(n_clicks: int, siret: str):
                 res.append(None)
 
         res.append(additional_data)
-        print("yeah")
         return tuple(res), None, {"display": "revert"}
     else:
         raise PreventUpdate
@@ -358,7 +395,7 @@ def populate_bsdd_components(company_data: str, bsdd_data: str):
 
     if bsdd_data is None:
         logger.info("Pas de données BSDD trouvées pour le siret")
-        return no_update
+        return [html.Div()]
 
     layout = create_bs_components_layouts(
         bsdd_data,
@@ -382,7 +419,7 @@ def populate_bsda_components(company_data: str, bsda_data: str):
 
     if bsda_data is None or len(bsda_data) == 0:
         logger.info("Pas de données BSDA trouvées pour le siret")
-        return no_update
+        return [html.Div()]
 
     layout = create_bs_components_layouts(
         bsda_data,
@@ -406,7 +443,7 @@ def populate_bsff_components(company_data: str, bsff_data: str):
 
     if bsff_data is None or len(bsff_data) == 0:
         logger.info("Pas de données BSDFF trouvées pour le siret")
-        return [], [], []
+        return [html.Div()]
 
     layout = create_bs_components_layouts(
         bsff_data,
@@ -430,7 +467,7 @@ def populate_bsdasri_components(company_data: str, bsdasri_data: str):
 
     if bsdasri_data is None:
         logger.info("Pas de données BSDASRI trouvées pour le siret")
-        return no_update
+        return [html.Div()]
 
     layout = create_bs_components_layouts(
         bsdasri_data,
@@ -454,7 +491,7 @@ def populate_bsvhu_components(company_data: str, bsvhu_data: str):
 
     if bsvhu_data is None:
         logger.info("Pas de données BSDA trouvées pour le siret")
-        return no_update
+        return [html.Div()]
 
     layout = create_bs_components_layouts(
         bsvhu_data,
@@ -482,13 +519,13 @@ def populate_bsvhu_components(company_data: str, bsvhu_data: str):
         Input("additional-data", "data"),
     ),
 )
-def populate_complementary_figures_components(*args):
+def populate_complementary_figures_section(*args):
     layout = create_complementary_figure_components(*args)
     return layout
 
 
 @callback(
-    output=(Output("stock-data-figures", "children"),),
+    output=(Output("stock-data-figures", "children"), Output("stock-no-data", "style")),
     inputs=(
         Input("company-data", "data"),
         Input("bsdd-data", "data"),
@@ -498,14 +535,17 @@ def populate_complementary_figures_components(*args):
         Input("bsvhu-data", "data"),
     ),
 )
-def populate_onsite_waste_components(*args):
+def populate_onsite_waste_section(*args):
     layout = create_onsite_waste_components(*args)
 
     return layout
 
 
 @callback(
-    output=(Output("input-output-waste-data-table", "children"),),
+    output=(
+        Output("input-output-waste-data-table", "children"),
+        Output("input-output-no-data", "style"),
+    ),
     inputs=(
         Input("company-data", "data"),
         Input("bsdd-data", "data"),
@@ -517,6 +557,24 @@ def populate_onsite_waste_components(*args):
 )
 def populate_waste_input_output_table(*args):
     layout = create_waste_input_output_table_component(*args)
+
+    return layout
+
+
+@callback(
+    output=(Output("icpe-section", "children"), Output("icpe-no-data", "style")),
+    inputs=(
+        Input("company-data", "data"),
+        Input("icpe-data", "data"),
+        Input("bsdd-data", "data"),
+        Input("bsda-data", "data"),
+        Input("bsff-data", "data"),
+        Input("bsdasri-data", "data"),
+        Input("bsvhu-data", "data"),
+    ),
+)
+def populate_icpe_section(*args):
+    layout = create_icpe_components(*args)
 
     return layout
 
@@ -543,3 +601,35 @@ def handle_download_outliers_data(nclicks, additional_data):
         )
     else:
         raise PreventUpdate
+
+
+@callback(
+    output=Output("bs-no-data", "style"),
+    inputs=(
+        Input("bsdd-figures", "children"),
+        Input("bsda-figures", "children"),
+        Input("bsff-figures", "children"),
+        Input("bsvhu-figures", "children"),
+        Input("bsdasri-figures", "children"),
+        Input("complementary-figures", "children"),
+    ),
+)
+def manage_bs_no_data_message(*args):
+    if all(arg is None for arg in args):
+        return no_update
+
+    for e in args:
+        if isinstance(e, list):
+            if e[0]["props"]["children"] is not None:
+                return {"display": "none"}
+            else:
+                return {"display": "block"}
+        else:
+            if isinstance(e["props"]["children"], list) and (
+                len(e["props"]["children"]) != 0
+            ):
+                return {"display": "none"}
+            elif e["props"]["children"] is not None:
+                return {"display": "none"}
+            else:
+                return {"display": "block"}
