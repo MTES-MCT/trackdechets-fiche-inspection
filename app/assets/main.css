@@ -81,10 +81,6 @@ h2 {
     page-break-before: always;
 }
 
-#layout-container.printing #bordereaux-data-section>div:nth-child(1n+4) {
-    page-break-before: always;
-}
-
 #layout-container.printing #bordereaux-data-section {
     page-break-before: always;
 }

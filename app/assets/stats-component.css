@@ -172,4 +172,5 @@
     background-color: #F9F8F6;
     margin-bottom: 10px;
     border-radius: 16px;
+    page-break-inside: avoid;
 }

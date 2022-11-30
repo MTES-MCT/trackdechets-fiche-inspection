@@ -1,6 +1,5 @@
 function relayoutPlotly() {
     document.querySelectorAll('.dash-graph').forEach(function (element) {
-        console.log(element)
 
         const box = element.getBoundingClientRect()
         Plotly.relayout(element.getElementsByClassName("js-plotly-plot")[0], { width: box.width, height: box.height, autosize: true })
@@ -14,7 +13,7 @@ function resizeForPrinting(e) {
     layoutContainer.className = "printing"
 
     relayoutPlotly()
-    setTimeout(print, 500)
+    //setTimeout(print, 500)
 
 }
 
