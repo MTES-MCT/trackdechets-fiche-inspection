@@ -100,6 +100,10 @@
     align-items: center;
 }
 
+#layout-container.printing .sc-stock-item {
+    margin: 15px 0;
+}
+
 .sc-quantity-value {
     font-size: 1.7em;
     min-width: 35%;
@@ -109,6 +113,10 @@
 
 #sc-total-stock {
     margin: 45px 0;
+}
+
+#layout-container.printing #sc-total-stock {
+    margin: 15px 0;
 }
 
 #sc-total-stock span {

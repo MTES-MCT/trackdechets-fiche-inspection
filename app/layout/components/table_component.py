@@ -115,14 +115,14 @@ class InputOutputWasteTableComponent(BaseComponent):
                     {
                         "if": {
                             "column_id": "Entrant/Sortant",
-                            "filter_query": "{Entrant/Sortant} = '➡️entrant'",
+                            "filter_query": "{Entrant/Sortant} = '➡️ entrant'",
                         },
                         "font-weight": 700,
                     },
                     {
                         "if": {
                             "column_id": "Entrant/Sortant",
-                            "filter_query": "{Entrant/Sortant} = 'sortant➡️'",
+                            "filter_query": "{Entrant/Sortant} = 'sortant ➡️'",
                         },
                         "font-weight": 700,
                     },

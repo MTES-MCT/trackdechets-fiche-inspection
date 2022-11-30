@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Dict
+import re
 
 import numpy as np
 import pandas as pd
@@ -571,30 +572,58 @@ class ICPEItemsComponent(BaseComponent):
         self.icpe_data = icpe_data
 
         self.bs_data_dfs = bs_data_dfs
+        self.unit_pattern = re.compile(
+            r"""^t$
+                |^t\/.*$
+                |citerne
+                |bouteille
+                |cabine
+                |tonne
+                |aire
+                |cartouche
+            """,
+            re.X,
+        )
 
     def _add_items_list(self) -> None:
 
         icpe_items_li_list = []
         for item in self.icpe_data.itertuples():
             rubrique_str = str(item.rubrique)
-            if item.alinea is not None:
+            if not pd.isna(item.alinea):
                 rubrique_str += f" {item.alinea}"
 
             authorization_str = "Pas de volume autorisé."
             volume = ""
             if not pd.isna(item.volume):
                 volume = format_number_str(item.volume, precision=1)
-                authorization_str = " autorisés"
+                authorization_str = " unitée(s) autorisée(s)"
 
             unite = ""
             if item.unite is not None:
                 unite = item.unite
+                if re.match(self.unit_pattern, item.unite):
+                    authorization_str = " autorisée(s)"
+                else:
+                    authorization_str = " autorisé(s)"
+
+            dates = ""
+            if not pd.isna(item.date_debut_exploitation) and not pd.isna(
+                item.date_fin_validite
+            ):
+                dates += f" (valide du {item.date_debut_exploitation:%d-%m-%Y} au {item.date_fin_validite:%d-%m-%Y})"
+            elif not pd.isna(item.date_debut_exploitation):
+                dates += (
+                    f" (valide à partir du {item.date_debut_exploitation:%d-%m-%Y})"
+                )
+            elif not pd.isna(item.date_fin_validite):
+                dates += f" (valide jusqu'au {item.date_fin_validite:%d-%m-%Y})"
 
             icpe_items_li_list.append(
                 html.Li(
                     [
                         html.Div(
-                            f"{rubrique_str} - {item.libelle_court_activite.capitalize()}",
+                            f"{rubrique_str} - {item.libelle_court_activite.capitalize()} {dates}",
                             className="sc-icpe-item-title fr-text--lg",
                         ),
                         html.Div(
@@ -605,7 +634,7 @@ class ICPEItemsComponent(BaseComponent):
                                         authorization_str,
                                     ],
                                     className="sc-item-quantity-authorized",
-                                )
+                                ),
                             ],
                             className="sc-rubrique-item-details",
                         ),

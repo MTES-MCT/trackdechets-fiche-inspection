@@ -518,7 +518,10 @@ def create_icpe_components(
     company_data = json.loads(company_data)
     siret = company_data["siret"]
 
-    icpe_data = pd.read_json(icpe_data)
+    icpe_data = pd.read_json(
+        icpe_data,
+        convert_dates=["date_debut_exploitation", "date_fin_activite"],
+    )
 
     dfs = load_dfs_with_config(
         [

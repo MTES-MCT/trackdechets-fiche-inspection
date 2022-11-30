@@ -9,7 +9,6 @@ body {
 
 .row {
     margin-bottom: 20px;
-    justify-content: center;
     justify-content: space-around;
 }
 
@@ -82,7 +81,7 @@ h2 {
     page-break-before: always;
 }
 
-#layout-container.printing #bordereaux-data-section>div:nth-child(1n+3) {
+#layout-container.printing #bordereaux-data-section>div:nth-child(1n+4) {
     page-break-before: always;
 }
 
@@ -101,6 +100,11 @@ h2 {
 #layout-container.printing .sc-outlier-date-download-button {
     display: none;
 }
+
+#layout-container.printing #bs-refusal {
+    width: 100%;
+}
+
 
 .no-data-message {
     text-align: center;
