@@ -188,6 +188,10 @@
     font-weight: 700;
 }
 
+.sc-tr-quantity>span {
+    font-weight: 700;
+}
+
 .sc-tr-item-info {
     display: flex;
     flex-direction: row;
