@@ -174,3 +174,38 @@
     border-radius: 16px;
     page-break-inside: avoid;
 }
+
+#sc-tr-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#sc-tr-list>li {
+    margin-top: 15px;
+}
+
+.sc-tr-count {
+    font-weight: 700;
+}
+
+.sc-tr-item-info {
+    display: flex;
+    flex-direction: row;
+    font-size: large
+}
+
+.sc-tr-item-info>div:nth-child(1n+2) {
+    margin-left: 10%;
+}
+
+.sc-tr-waste-code {
+    min-width: 20%;
+}
+
+.sc-tr-num-bs {
+    min-width: 30%;
+}
+
+.sc-tr-quantity {
+    min-width: 30%;
+}

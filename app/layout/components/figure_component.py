@@ -405,7 +405,8 @@ class BSRefusalsComponent(FigureComponent):
             tick0=min(mins),
             dtick="M1",
         )
-        fig.update_yaxes(dtick=1)
+
+        fig.update_yaxes(exponentformat="B")
 
         self.figure = fig
 

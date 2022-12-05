@@ -76,6 +76,7 @@ def load_dfs_with_config(load_configs: List[dict]) -> Dict[str, pd.DataFrame]:
                 "recipientCompanySiret": str,
                 "wasteDetailsQuantity": float,
                 "quantityReceived": float,
+                "noTraceability": bool,
             },
             convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
         )

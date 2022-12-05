@@ -630,7 +630,7 @@ class ICPEItemsComponent(BaseComponent):
                             [
                                 html.Div(
                                     [
-                                        html.Span(f"{volume}{unite}"),
+                                        html.Span(f"{volume} {unite}"),
                                         authorization_str,
                                     ],
                                     className="sc-item-quantity-authorized",
@@ -661,4 +661,138 @@ class ICPEItemsComponent(BaseComponent):
         if not self._check_data_empty():
             self._add_items_list()
 
+        return self.component_layout
+
+
+class TraceabilityInterruptionsComponent(BaseComponent):
+    """Component that displays list of ICPE authorized items.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    bsdd_data: DataFrame
+        DataFrame containing bsdd data.
+
+
+    """
+
+    def __init__(
+        self,
+        component_title: str,
+        company_siret: str,
+        bsdd_data: pd.DataFrame,
+        waste_codes_df: pd.DataFrame,
+    ) -> None:
+
+        super().__init__(component_title, company_siret)
+
+        self.preprocessed_data = None
+
+        self.bsdd_data = bsdd_data
+        self.waste_codes_df = waste_codes_df
+
+    def _preprocess_data(self) -> None:
+
+        if self.bsdd_data is None:
+            return
+
+        df_filtered = self.bsdd_data[
+            self.bsdd_data["noTraceability"]
+            & (self.bsdd_data["emitterCompanySiret"] == self.company_siret)
+        ]
+
+        if len(df_filtered) == 0:
+            return
+
+        df_grouped = df_filtered.groupby("wasteCode", as_index=False).agg(
+            quantity=pd.NamedAgg(column="quantityReceived", aggfunc="sum"),
+            count=pd.NamedAgg(column="id", aggfunc="count"),
+        )
+
+        final_df = pd.merge(
+            df_grouped,
+            self.waste_codes_df,
+            left_on="wasteCode",
+            right_index=True,
+            how="left",
+            validate="one_to_one",
+        )
+
+        final_df["quantity"] = final_df["quantity"].apply(
+            format_number_str, precision=2
+        )
+
+        self.preprocessed_data = final_df
+
+    def _check_data_empty(self) -> bool:
+
+        if (self.preprocessed_data is None) or (len(self.preprocessed_data) == 0):
+            self.is_component_empty = True
+            return True
+
+        return False
+
+    def _add_stats(self) -> None:
+
+        li_items = []
+
+        for e in self.preprocessed_data.sort_values(
+            "quantity", ascending=False
+        ).itertuples():
+            bordereau_str = "bordereaux"
+            if e.quantity == 1:
+                bordereau_str = bordereau_str[:-1]
+            li_items.append(
+                html.Li(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    f"{e.wasteCode}:", className="sc-tr-waste-code"
+                                ),
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            f"{e.count}", className="sc-tr-count"
+                                        ),
+                                        f" {bordereau_str}",
+                                    ],
+                                    className="sc-tr-num-bs",
+                                ),
+                                html.Div(
+                                    [html.Span(f"{e.quantity}"), " tonnes"],
+                                    className="sc-tr-quantity",
+                                ),
+                            ],
+                            className="sc-tr-item-info",
+                        ),
+                        html.Div(e.description),
+                    ],
+                    className="sc-tr-list-item",
+                )
+            )
+
+        self.component_layout.append(
+            html.Div(
+                [
+                    html.Div(
+                        "L'établissement a indique sur les BSD être autorisé à la rupture de traçabilité"
+                        ", par arrêté préfectoral pour les déchets suivants:"
+                    ),
+                    html.Ul(li_items, id="sc-tr-list"),
+                ]
+            )
+        )
+
+    def create_layout(self) -> list:
+        self._add_component_title()
+        self._preprocess_data()
+
+        if not self._check_data_empty():
+            self._add_stats()
+        else:
+            self._add_empty_block()
         return self.component_layout

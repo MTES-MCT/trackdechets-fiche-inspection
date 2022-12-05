@@ -97,10 +97,13 @@ h2 {
     display: none;
 }
 
-#layout-container.printing #bs-refusal {
-    width: 100%;
+#layout-container.printing #traceability-interruption-component {
+    width: 95%;
 }
 
+#layout-container.printing #icpe-items-component {
+    width: 95%;
+}
 
 .no-data-message {
     text-align: center;

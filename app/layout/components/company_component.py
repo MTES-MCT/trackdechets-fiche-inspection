@@ -35,6 +35,7 @@ class CompanyComponent(BaseComponent):
         "TRADER": "Négociant",
         "TRANSPORTER": "Transporteur",
         "ECO_ORGANISM": "Éco-organisme",
+        "ECO_ORGANISME": "Éco-organisme",
         "PRODUCER": "Producteur",
         "WASTE_VEHICLES": "Centre Véhicules Hors d'Usage",
     }

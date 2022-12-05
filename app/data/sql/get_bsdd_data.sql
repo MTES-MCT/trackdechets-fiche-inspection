@@ -11,7 +11,8 @@ select
     "quantityReceived",
     "wasteDetailsCode" as "wasteCode",
     "status",
-    "transporterTransportMode"
+    "transporterTransportMode",
+    "noTraceability"
  from
     "default$default"."Form" f
 where

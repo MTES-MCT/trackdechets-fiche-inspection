@@ -13,7 +13,7 @@ function resizeForPrinting(e) {
     layoutContainer.className = "printing"
 
     relayoutPlotly()
-    //setTimeout(print, 500)
+    setTimeout(print, 500)
 
 }
 

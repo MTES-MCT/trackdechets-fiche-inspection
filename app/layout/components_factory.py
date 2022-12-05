@@ -28,6 +28,7 @@ from app.layout.components.stats_component import (
     BSStatsComponent,
     ICPEItemsComponent,
     StorageStatsComponent,
+    TraceabilityInterruptionsComponent,
 )
 from app.layout.components.table_component import InputOutputWasteTableComponent
 from app.layout.utils import load_dfs_with_config
@@ -315,7 +316,7 @@ def create_complementary_figure_components(
         final_layout.append(
             dbc.Col(
                 additional_info_component.create_layout(),
-                id="bs-refusal",
+                id="bs-additional-info",
                 lg=8,
                 md=12,
                 sm=12,
@@ -323,7 +324,7 @@ def create_complementary_figure_components(
             )
         )
 
-    return html.Div(final_layout)
+    return html.Div(dbc.Row(final_layout))
 
 
 def create_onsite_waste_components(
@@ -512,37 +513,87 @@ def create_icpe_components(
     bsvhu_data: str,
 ):
 
-    if icpe_data is None:
-        return [html.Div()], {"display": "block"}
-
     company_data = json.loads(company_data)
     siret = company_data["siret"]
 
-    icpe_data = pd.read_json(
-        icpe_data,
-        convert_dates=["date_debut_exploitation", "date_fin_activite"],
-    )
+    if all(
+        e is None
+        for e in [icpe_data, bsdd_data, bsda_data, bsff_data, bsdasri_data, bsvhu_data]
+    ):
+        return [html.Div()], {"display": "block"}
 
-    dfs = load_dfs_with_config(
-        [
-            {"name": "Déchets Dangereux", "data": bsdd_data},
-            {"name": "Amiante", "data": bsda_data},
-            {"name": "Fluides Frigo", "data": bsff_data},
-            {"name": "DASRI", "data": bsdasri_data},
-            {"name": "VHU", "data": bsvhu_data},
-        ]
-    )
+    final_layout = []
+    if any(
+        e is not None
+        for e in [icpe_data, bsdd_data, bsda_data, bsff_data, bsdasri_data, bsvhu_data]
+    ):
 
-    icpe_items_component = ICPEItemsComponent(
-        "Rubriques ICPE autorisées",
-        company_siret=siret,
-        icpe_data=icpe_data,
-        bs_data_dfs=dfs,
-    )
+        dfs = load_dfs_with_config(
+            [
+                {"name": "Déchets Dangereux", "data": bsdd_data},
+                {"name": "Amiante", "data": bsda_data},
+                {"name": "Fluides Frigo", "data": bsff_data},
+                {"name": "DASRI", "data": bsdasri_data},
+                {"name": "VHU", "data": bsvhu_data},
+            ]
+        )
 
-    layout = icpe_items_component.create_layout()
+        traceability_interruption_component = TraceabilityInterruptionsComponent(
+            component_title="Rupture de traçabilité",
+            company_siret=siret,
+            bsdd_data=dfs["Déchets Dangereux"],
+            waste_codes_df=WASTE_CODES_DATA,
+        )
 
-    if not icpe_items_component.is_component_empty:
-        return [dbc.Row(dbc.Col(layout, lg=9, md=12, sm=12))], {"display": "none"}
+        traceability_interruption_component_layout = (
+            traceability_interruption_component.create_layout()
+        )
+
+        if not traceability_interruption_component.is_component_empty:
+            final_layout.append(
+                dbc.Row(
+                    dbc.Col(
+                        traceability_interruption_component_layout,
+                        lg=6,
+                        md=12,
+                        sm=12,
+                        class_name="col-framed col-print",
+                        id="traceability-interruption-component",
+                    )
+                )
+            )
+
+    if icpe_data is not None:
+
+        icpe_data = pd.read_json(
+            icpe_data,
+            convert_dates=["date_debut_exploitation", "date_fin_activite"],
+        )
+
+        icpe_items_component = ICPEItemsComponent(
+            "Rubriques ICPE autorisées",
+            company_siret=siret,
+            icpe_data=icpe_data,
+            bs_data_dfs=dfs,
+        )
+
+        icpe_items_layout = icpe_items_component.create_layout()
+
+        if not icpe_items_component.is_component_empty:
+            final_layout.append(
+                dbc.Row(
+                    dbc.Col(
+                        icpe_items_layout,
+                        lg=8,
+                        md=12,
+                        sm=12,
+                        class_name="col-framed col-print",
+                        id="icpe-items-component",
+                    )
+                ),
+            )
+
+    if len(final_layout):
+        return final_layout, {"display": "none"}
     else:
         return [html.Div()], {"display": "block"}
