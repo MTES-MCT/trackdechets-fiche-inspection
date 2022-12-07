@@ -218,7 +218,7 @@ def get_data_for_siret(n_clicks: int, siret: str):
         if len(company_data_df) == 0:
 
             return (
-                (no_update,) * 8,
+                (no_update,) * 9,
                 dbc.Alert(
                     "Aucune entreprise avec ce SIRET inscrite sur Trackdéchets",
                     color="danger",

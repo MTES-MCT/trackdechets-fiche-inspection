@@ -701,7 +701,7 @@ class TraceabilityInterruptionsComponent(BaseComponent):
 
         df_filtered = self.bsdd_data[
             self.bsdd_data["noTraceability"]
-            & (self.bsdd_data["emitterCompanySiret"] == self.company_siret)
+            & (self.bsdd_data["recipientCompanySiret"] == self.company_siret)
         ]
 
         if len(df_filtered) == 0:
