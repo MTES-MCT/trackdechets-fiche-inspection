@@ -1,7 +1,5 @@
-import json
 import logging
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime,timezone
 
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -371,9 +369,9 @@ def get_data_for_siret(n_clicks: int, siret: str):
     Input("company-data", "data"),
 )
 def populate_company_header(company_data: str):
-    company_data = company_data
+
     company_name = company_data["name"]
-    today_date = datetime.now(tz=ZoneInfo("Europe/Paris")).strftime(r"%d/%m/%Y")
+    today_date = datetime.utcnow().replace(tzinfo=timezone.utc).strftime(r"%d/%m/%Y")
 
     layout = html.H1(f"{company_name} - {today_date}")
     return layout

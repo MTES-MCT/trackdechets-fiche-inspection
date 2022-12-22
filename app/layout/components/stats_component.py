@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict
 import re
 
@@ -65,7 +65,7 @@ class BSStatsComponent(BaseComponent):
 
     def _preprocess_data(self) -> None:
 
-        one_year_ago = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-01")
+        one_year_ago = (datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=365)).strftime("%Y-%m-01")
 
         bs_data = self.bs_data
         bs_revised_data = self.bs_revised_data

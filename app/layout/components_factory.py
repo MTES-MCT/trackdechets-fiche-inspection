@@ -44,14 +44,14 @@ PROCESSING_OPERATION_CODE_RUBRIQUE_MAPPING = (
 
 
 def create_company_infos(
-    company_data: Dict[str, str], receipts_agreements_data: Dict[str, str]
+    company_data: pd.Series, receipts_agreements_data: Dict[str, pd.DataFrame]
 ) -> list:
     """Creates the components about company (general information and receipts/agreements info) and returns layout.
 
     Parameters
     ----------
-    company_data : dict
-        Dict with company general information.
+    company_data : pandas Series
+        Series with company general information.
     receipts_agreements_data : dict
         Dict with keys being the name of the receipt/agreement and values being DataFrames
         with one line per receipt/agreement (usually there is only one receipt for a receipt type for an establishment but
@@ -109,8 +109,8 @@ Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, m
 
 
 def create_bs_components_layouts(
-    bs_data: str,
-    company_data_str: str,
+    bs_data: pd.DataFrame,
+    company_data: pd.Series,
     components_titles: List[str],
     components_ids: List[str],
 ) -> list:
@@ -118,10 +118,10 @@ def create_bs_components_layouts(
 
     Parameters
     ----------
-    bs_data: str
-        JSON-serialized DataFrame containing data for a given 'bordereau' type.
-    company_data_str : str
-        Serialized company data.
+    bs_data: DataFrame
+        DataFrame containing data for a given 'bordereau' type.
+    company_data : Series
+        Series containing company data.
     components_titles : list of str
         Titles of the three different components in the order they appears in the layout.
     components_ids : list of str
@@ -134,7 +134,6 @@ def create_bs_components_layouts(
 
     """
 
-    company_data = company_data_str
     siret = company_data["siret"]
 
     bs_data_df = bs_data["bs_data"]
@@ -211,33 +210,33 @@ def create_bs_components_layouts(
 
 
 def create_complementary_figure_components(
-    company_data: str,
-    bsdd_data: str,
-    bsda_data: str,
-    bsff_data: str,
-    bsdasri_data: str,
-    bsvhu_data: str,
-    additional_data: str,
-):
+    company_data: pd.Series,
+    bsdd_data: pd.DataFrame,
+    bsda_data: pd.DataFrame,
+    bsff_data: pd.DataFrame,
+    bsdasri_data: pd.DataFrame,
+    bsvhu_data: pd.DataFrame,
+    additional_data: Dict[str, Dict[str, pd.DataFrame]],
+) -> html.Div:
     """Creates the components about refused 'bordereaux' and complementary informations about outliers
     and returns layout.
 
     Parameters
     ----------
-    company_data : str
+    company_data : DataFrame
         Serialized company data.
-    bsdd_data: str
-        JSON-serialized DataFrame containing data for BSDDs.
-    bsda_data: str
-        JSON-serialized DataFrame containing data for BSDAs.
-    bsff_data: str
-        JSON-serialized DataFrame containing data for BSFFs.
-    bsdasri_data: str
-        JSON-serialized DataFrame containing data for BSDASRIs.
-    bsvhu_data: str
-        JSON-serialized DataFrame containing data for BSVHUs.
-    additional_data : str
-        JSON-serialized DataFrame containing outliers data as dicts of DataFrames.
+    bsdd_data: DataFrame
+        DataFrame containing data for BSDDs.
+    bsda_data: DataFrame
+        DataFrame containing data for BSDAs.
+    bsff_data: DataFrame
+        DataFrame containing data for BSFFs.
+    bsdasri_data: DataFrame
+        DataFrame containing data for BSDASRIs.
+    bsvhu_data: DataFrame
+        DataFrame containing data for BSVHUs.
+    additional_data : dict
+        Dict of DataFrame containing outliers data. Key are 'bordereau' type and values are outliers.
 
     Returns
     -------
@@ -318,29 +317,29 @@ def create_complementary_figure_components(
 
 
 def create_onsite_waste_components(
-    company_data: str,
-    bsdd_data: str,
-    bsda_data: str,
-    bsff_data: str,
-    bsdasri_data: str,
-    bsvhu_data: str,
-):
+    company_data: pd.Series,
+    bsdd_data: pd.DataFrame,
+    bsda_data: pd.DataFrame,
+    bsff_data: pd.DataFrame,
+    bsdasri_data: pd.DataFrame,
+    bsvhu_data: pd.DataFrame,
+) -> list:
     """Creates the components about on site wastes (three components).
 
     Parameters
     ----------
-    company_data : str
-        Serialized company data.
+    company_data : Series
+        Series containing company data.
     bsdd_data: str
-        JSON-serialized DataFrame containing data for BSDDs.
+        DataFrame containing data for BSDDs.
     bsda_data: str
-        JSON-serialized DataFrame containing data for BSDAs.
+        DataFrame containing data for BSDAs.
     bsff_data: str
-        JSON-serialized DataFrame containing data for BSFFs.
+        DataFrame containing data for BSFFs.
     bsdasri_data: str
-        JSON-serialized DataFrame containing data for BSDASRIs.
+        DataFrame containing data for BSDASRIs.
     bsvhu_data: str
-        JSON-serialized DataFrame containing data for BSVHUs.
+        DataFrame containing data for BSVHUs.
 
     Returns
     -------
@@ -433,29 +432,29 @@ def create_onsite_waste_components(
 
 
 def create_waste_input_output_table_component(
-    company_data: str,
-    bsdd_data: str,
-    bsda_data: str,
-    bsff_data: str,
-    bsdasri_data: str,
-    bsvhu_data: str,
-):
+    company_data: pd.Series,
+    bsdd_data: pd.DataFrame,
+    bsda_data: pd.DataFrame,
+    bsff_data: pd.DataFrame,
+    bsdasri_data: pd.DataFrame,
+    bsvhu_data: pd.DataFrame,
+) -> list:
     """Creates the table component with the list of inbound and outbound wastes.
 
     Parameters
     ----------
-    company_data : str
-        Serialized company data.
-    bsdd_data: str
-        JSON-serialized DataFrame containing data for BSDDs.
-    bsda_data: str
-        JSON-serialized DataFrame containing data for BSDAs.
-    bsff_data: str
-        JSON-serialized DataFrame containing data for BSFFs.
-    bsdasri_data: str
-        JSON-serialized DataFrame containing data for BSDASRIs.
-    bsvhu_data: str
-        JSON-serialized DataFrame containing data for BSVHUs.
+    company_data : Series
+        Series containing company data.
+    bsdd_data: DataFrame
+        DataFrame containing data for BSDDs.
+    bsda_data: DataFrame
+        DataFrame containing data for BSDAs.
+    bsff_data: DataFrame
+        DataFrame containing data for BSFFs.
+    bsdasri_data: DataFrame
+        DataFrame containing data for BSDASRIs.
+    bsvhu_data: DataFrame
+        DataFrame containing data for BSVHUs.
 
 
     Returns
@@ -492,14 +491,14 @@ def create_waste_input_output_table_component(
 
 
 def create_icpe_components(
-    company_data: str,
-    icpe_data: str,
-    bsdd_data: str,
-    bsda_data: str,
-    bsff_data: str,
-    bsdasri_data: str,
-    bsvhu_data: str,
-):
+    company_data: pd.Series,
+    icpe_data: pd.DataFrame,
+    bsdd_data: pd.DataFrame,
+    bsda_data: pd.DataFrame,
+    bsff_data: pd.DataFrame,
+    bsdasri_data: pd.DataFrame,
+    bsvhu_data: pd.DataFrame,
+) -> tuple:
 
     siret = company_data["siret"]
 

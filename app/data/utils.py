@@ -37,9 +37,13 @@ def get_outliers_datetimes_df(
         df = df[~df.index.isin(idx_with_outliers)]
 
     for colname in date_columns:
-        df[colname] = pd.to_datetime(df[colname].replace(["None", "NaT"], pd.NaT))
+        df[colname] = pd.to_datetime(
+            df[colname].replace(["None", "NaT"], pd.NaT), utc=True
+        )
 
-    df["createdAt"] = pd.to_datetime(df["createdAt"].replace(["None", "NaT"], pd.NaT))
+    df["createdAt"] = pd.to_datetime(
+        df["createdAt"].replace(["None", "NaT"], pd.NaT), utc=True
+    )
     return df, outliers
 
 

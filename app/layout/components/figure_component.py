@@ -1,8 +1,7 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict
-from zoneinfo import ZoneInfo
 
 import geopandas as gpd
 import pandas as pd
@@ -213,10 +212,8 @@ class StockComponent(FigureComponent):
     def _preprocess_data(self) -> None:
 
         bs_data = self.bs_data
-        one_year_ago = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-01")
-        today_date = datetime.now(tz=ZoneInfo("Europe/Paris")).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        one_year_ago = (datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=365)).strftime("%Y-%m-01")
+        today_date = datetime.utcnow().replace(tzinfo=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
         incoming_data = bs_data[
             (bs_data["recipientCompanySiret"] == self.company_siret)
