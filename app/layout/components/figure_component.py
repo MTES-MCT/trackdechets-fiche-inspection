@@ -1,13 +1,13 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict
-from zoneinfo import ZoneInfo
 
 import geopandas as gpd
 import pandas as pd
 import plotly.graph_objects as go
-from dash import dcc
+from dash_extensions.enrich import dcc
+import numpy as np
 
 from .base_component import BaseComponent
 from .utils import format_number_str, get_code_departement
@@ -212,10 +212,8 @@ class StockComponent(FigureComponent):
     def _preprocess_data(self) -> None:
 
         bs_data = self.bs_data
-        one_year_ago = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-01")
-        today_date = datetime.now(tz=ZoneInfo("Europe/Paris")).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        one_year_ago = (datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=365)).strftime("%Y-%m-01")
+        today_date = datetime.utcnow().replace(tzinfo=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
         incoming_data = bs_data[
             (bs_data["recipientCompanySiret"] == self.company_siret)
@@ -227,13 +225,21 @@ class StockComponent(FigureComponent):
             & (bs_data["sentAt"] >= one_year_ago)
         ]
 
-        self.incoming_data_by_month = incoming_data.groupby(
-            pd.Grouper(key="receivedAt", freq="1M")
-        )["quantityReceived"].sum()
+        self.incoming_data_by_month = (
+            incoming_data.groupby(pd.Grouper(key="receivedAt", freq="1M"))[
+                "quantityReceived"
+            ]
+            .sum()
+            .replace(0, np.nan)
+        )
 
-        self.outgoing_data_by_month = outgoing_data.groupby(
-            pd.Grouper(key="sentAt", freq="1M")
-        )["quantityReceived"].sum()
+        self.outgoing_data_by_month = (
+            outgoing_data.groupby(pd.Grouper(key="sentAt", freq="1M"))[
+                "quantityReceived"
+            ]
+            .sum()
+            .replace(0, np.nan)
+        )
 
     def _check_data_empty(self) -> bool:
 
@@ -405,7 +411,8 @@ class BSRefusalsComponent(FigureComponent):
             tick0=min(mins),
             dtick="M1",
         )
-        fig.update_yaxes(dtick=1)
+
+        fig.update_yaxes(exponentformat="B")
 
         self.figure = fig
 

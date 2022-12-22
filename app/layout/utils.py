@@ -1,6 +1,10 @@
+from typing import Dict, List
+
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import dcc, html
+from dash_extensions.enrich import dcc, html
+
+from app.layout.components.utils import format_number_str
 
 
 def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):
@@ -20,7 +24,7 @@ def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):
     col = dbc.Col(
         html.Div(
             [
-                html.P(app.utils.format_number_str(number), className=number_class)
+                html.P(format_number_str(number), className=number_class)
                 if number
                 else None,
                 dcc.Markdown(text, className=text_class),
@@ -56,3 +60,29 @@ def add_figure(fig, fig_id: str) -> dbc.Row:
         ]
     )
     return row
+
+
+def load_dfs_with_config(load_configs: List[dict]) -> Dict[str, pd.DataFrame]:
+    dfs = {}
+
+    for config in load_configs:
+
+        name = config["name"]
+        data = config["data"]
+        if data is None:
+            continue
+        data_df = data[list(data.keys())[0]]
+        bs_data_df = pd.read_json(
+            data_df,
+            dtype={
+                "emitterCompanySiret": str,
+                "recipientCompanySiret": str,
+                "wasteDetailsQuantity": float,
+                "quantityReceived": float,
+                "noTraceability": bool,
+            },
+            convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
+        )
+        dfs[name] = bs_data_df
+
+    return dfs

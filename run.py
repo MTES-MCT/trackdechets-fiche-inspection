@@ -1,4 +1,4 @@
-from os import getenv
+from os import environ
 
 from app.app import dash_app
 
@@ -6,7 +6,9 @@ from app.app import dash_app
 server = dash_app.server
 # To use `python index.py` (dev)
 if __name__ == "__main__":
-    port = getenv("PORT", "8050")
 
     # Scalingo requires 0.0.0.0 as host, instead of the default 127.0.0.1
-    dash_app.run(debug=bool(getenv("DEVELOPMENT")), port=int(port))
+    host = environ.get("HOST", "127.0.0.1")
+    debug = bool(environ.get("DEVELOPMENT"))
+    port = int(environ.get("PORT", "8050"))
+    dash_app.run(host=host, debug=debug, port=port)

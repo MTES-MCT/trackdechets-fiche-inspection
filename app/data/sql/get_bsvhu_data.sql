@@ -8,8 +8,9 @@ select
     "emitterCompanyAddress",
     "destinationCompanySiret" as "recipientCompanySiret",
     "weightValue" as "wasteDetailsQuantity",
-    "destinationReceptionWeight" as "quantityReceived",
+    "destinationReceptionWeight"/1000 as "quantityReceived",
     "wasteCode",
+    "destinationOperationCode" as "processing_operation_code",
     "status"
 from
     "default$default"."Bsvhu" 

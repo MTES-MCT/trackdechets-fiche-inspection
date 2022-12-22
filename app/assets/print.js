@@ -1,6 +1,5 @@
 function relayoutPlotly() {
     document.querySelectorAll('.dash-graph').forEach(function (element) {
-        console.log(element)
 
         const box = element.getBoundingClientRect()
         Plotly.relayout(element.getElementsByClassName("js-plotly-plot")[0], { width: box.width, height: box.height, autosize: true })

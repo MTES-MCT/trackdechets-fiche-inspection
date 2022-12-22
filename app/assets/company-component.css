@@ -4,11 +4,15 @@
     justify-content: space-between;
 }
 
-#company-details > * {
+#company-details>* {
     margin: 15px 0;
 }
 
-#receipts-agrements-details{
+#cc-siret {
+    font-size: 1.5rem;
+}
+
+#receipts-agrements-details {
     display: flex;
     flex-direction: column;
     border-width: 2px 2px 2px 6px;

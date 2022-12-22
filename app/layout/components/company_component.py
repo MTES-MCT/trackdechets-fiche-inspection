@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict
-from zoneinfo import ZoneInfo
 
-from dash import html
+from dash_extensions.enrich import html
 
 from app.layout.components.base_component import BaseComponent
 
@@ -35,6 +34,7 @@ class CompanyComponent(BaseComponent):
         "TRADER": "Négociant",
         "TRANSPORTER": "Transporteur",
         "ECO_ORGANISM": "Éco-organisme",
+        "ECO_ORGANISME": "Éco-organisme",
         "PRODUCER": "Producteur",
         "WASTE_VEHICLES": "Centre Véhicules Hors d'Usage",
     }
@@ -49,7 +49,7 @@ class CompanyComponent(BaseComponent):
         company_address = self.company_data["address"]
         company_siret = self.company_data["siret"]
 
-        today_date = datetime.now(tz=ZoneInfo("Europe/Paris"))
+        today_date = datetime.utcnow().replace(tzinfo=timezone.utc)
         one_year_ago = today_date - timedelta(days=365)
 
         profiles_elements = []
@@ -123,7 +123,7 @@ class ReceiptAgrementsComponent(BaseComponent):
             for line in data.itertuples():
                 validity_str = ""
                 if "validityLimit" in line._fields:
-                    if line.validityLimit < datetime.utcnow():
+                    if line.validityLimit < datetime.utcnow().replace(tzinfo=timezone.utc):
                         validity_str = f"expiré depuis le {line.validityLimit}"
                     else:
                         validity_str = f"valide jusqu'au {line.validityLimit:%d/%m/%Y}"
