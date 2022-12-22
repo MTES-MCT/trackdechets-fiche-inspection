@@ -117,6 +117,27 @@ def load_waste_code_data() -> pd.DataFrame:
     return df
 
 
+def load_mapping_rubrique_processing_operation_code() -> pd.DataFrame:
+    """Load the mapping processing operation code <=> rubrique.
+
+    Columns included are :
+    - code
+    - description
+
+    Returns
+    -------
+    DataFrame
+        DataFrame with the the nomenclature of waste.
+    """
+
+    df = pd.read_csv(
+        STATIC_FILES_PATH / "mapping_rubrique_code_operation.csv",
+        dtype="str",
+    )
+
+    return df
+
+
 def load_and_preprocess_regions_geographical_data() -> gpd.GeoDataFrame:
     """Load the geojson of french regions, transform it to group overseas territories near metropolitan territory
     and returns it as a DataFrame.

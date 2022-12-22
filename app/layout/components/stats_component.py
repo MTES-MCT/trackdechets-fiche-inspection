@@ -79,7 +79,7 @@ class BSStatsComponent(BaseComponent):
             ]
         )
         self.revised_bs_count = (
-            len(bs_revised_data) if bs_revised_data is not None else 0
+            bs_revised_data["bsId"].nunique() if bs_revised_data is not None else 0
         )
         self.more_than_one_month_bs_count = len(
             bs_data[
@@ -565,13 +565,14 @@ class ICPEItemsComponent(BaseComponent):
         company_siret: str,
         icpe_data: pd.DataFrame,
         bs_data_dfs: Dict[str, pd.DataFrame],
+        mapping_processing_operation_code_rubrique: pd.DataFrame,
     ) -> None:
 
         super().__init__(component_title, company_siret)
 
         self.icpe_data = icpe_data
-
         self.bs_data_dfs = bs_data_dfs
+
         self.unit_pattern = re.compile(
             r"""^t$
                 |^t\/.*$
@@ -584,14 +585,149 @@ class ICPEItemsComponent(BaseComponent):
             """,
             re.X,
         )
+        self.mapping_processing_operation_code_rubrique = (
+            mapping_processing_operation_code_rubrique
+        )
+
+        self.on_site_2718_quantity = 0
+        self.on_site_2760_quantity = 0
+        self.avg_daily_2770_quantity = 0
+
+    def _preprocess_data(self) -> None:
+
+        preprocessed_inputs_dfs = []
+        preprocessed_output_dfs = []
+        actual_year = datetime.now().year
+        for df in self.bs_data_dfs.values():
+            df = df.dropna(subset=["processing_operation_code"])
+
+            if len(df) == 0:
+                continue
+
+            df["processing_operation_code"] = df[
+                "processing_operation_code"
+            ].str.replace(" ", "", regex=False)
+
+            df = pd.merge(
+                df,
+                self.mapping_processing_operation_code_rubrique,
+                left_on="processing_operation_code",
+                right_on="code_operation",
+                validate="many_to_many",
+                how="left",
+            )
+
+            preprocessed_inputs_dfs.append(
+                df[
+                    (df["recipientCompanySiret"] == self.company_siret)
+                    & (df["processedAt"].dt.year == actual_year)
+                ]
+            )
+            preprocessed_output_dfs.append(
+                df[
+                    (df["emitterCompanySiret"] == self.company_siret)
+                    & (df["processedAt"].dt.year == actual_year)
+                ]
+            )
+
+        if len(preprocessed_inputs_dfs) == 0:
+            return
+
+        preprocessed_inputs = pd.concat(preprocessed_inputs_dfs)
+        quantity = preprocessed_inputs.loc[
+            preprocessed_inputs["rubrique"] == "2718", "quantityReceived"
+        ].sum()
+
+        if len(preprocessed_output_dfs) > 0:
+            preprocessed_outputs = pd.concat(preprocessed_output_dfs)
+            quantity -= preprocessed_outputs.loc[
+                preprocessed_outputs["rubrique"] == "2718", "quantityReceived"
+            ].sum()
+
+        if quantity > 0:
+            self.on_site_2718_quantity = quantity
+
+        quantity = preprocessed_inputs.loc[
+            preprocessed_inputs["rubrique"] == "2760-1", "quantityReceived"
+        ].sum()
+        if quantity > 0:
+            self.on_site_2760_quantity = quantity
+
+        quantity = (
+            preprocessed_inputs.loc[preprocessed_inputs["rubrique"] == "2770"]
+            .groupby(pd.Grouper(key="processedAt", freq="1D"))["quantityReceived"]
+            .sum()
+            .mean()
+        )
+        if quantity > 0:
+            self.avg_daily_2770_quantity = quantity
 
     def _add_items_list(self) -> None:
 
+        icpe_data = pd.concat(
+            [
+                self.icpe_data.loc[
+                    self.icpe_data["rubrique"].isin([2718, 2760, 2790, 2770])
+                ],
+                self.icpe_data.loc[
+                    ~self.icpe_data["rubrique"].isin([2718, 2760, 2790])
+                ].sort_values("rubrique"),
+            ]
+        )
         icpe_items_li_list = []
-        for item in self.icpe_data.itertuples():
+        for item in icpe_data.itertuples():
+
             rubrique_str = str(item.rubrique)
-            if not pd.isna(item.alinea):
-                rubrique_str += f" {item.alinea}"
+            if not pd.isna(item.alinea) and item.alinea != "None":
+                rubrique_str += f"-{item.alinea}"
+
+            on_site_quantity_div = html.Div()
+            if (rubrique_str == "2718") and (self.on_site_2718_quantity > 0):
+                quantity = format_number_str(self.on_site_2718_quantity, precision=0)
+                on_site_quantity_div = html.Div(
+                    [html.Span(f"{quantity} t"), " sur site"],
+                    className="sc-onsite-quantity",
+                )
+            elif (rubrique_str == "2760-1") and (self.on_site_2760_quantity > 0):
+                quantity = format_number_str(self.on_site_2760_quantity, precision=0)
+                quantity_frac = int(100 * self.on_site_2760_quantity / item.volume)
+                remaining_quantity = int(
+                    100 - (100 * self.on_site_2760_quantity / item.volume)
+                )
+                style = {
+                    "grid-column": f"1/{quantity_frac+2}",
+                }
+                style_remaining = {
+                    "grid-column": f"{quantity_frac+2}/-1",
+                }
+                on_site_quantity_div = html.Div(
+                    [
+                        html.Div(
+                            [],
+                            style=style,
+                            className="sc-grid-onsite-weight-bar",
+                        ),
+                        html.Div(
+                            className="sc-grid-onsite-weight-remaining-bar",
+                            style=style_remaining,
+                        ),
+                        html.Span(
+                            f"{quantity} t reçues",
+                            className="sc-grid-onsite-weight-value",
+                        ),
+                        html.Span(
+                            f"{remaining_quantity} % restants",
+                            className="sc-grid-onsite-weight-remaining-value",
+                        ),
+                    ],
+                    className="sc-grid-onsite-quantity",
+                )
+            elif (rubrique_str == "2770") and (self.avg_daily_2770_quantity > 0):
+                quantity = format_number_str(self.avg_daily_2770_quantity)
+                on_site_quantity_div = html.Div(
+                    [html.Span(f"{quantity} t/j"), " moyenne annuelle"],
+                    className="sc-onsite-quantity",
+                )
 
             authorization_str = "Pas de volume autorisé."
             volume = ""
@@ -600,7 +736,7 @@ class ICPEItemsComponent(BaseComponent):
                 authorization_str = " unitée(s) autorisée(s)"
 
             unite = ""
-            if item.unite is not None:
+            if not pd.isna(item.unite):
                 unite = item.unite
                 if re.match(self.unit_pattern, item.unite):
                     authorization_str = " autorisée(s)"
@@ -635,6 +771,7 @@ class ICPEItemsComponent(BaseComponent):
                                     ],
                                     className="sc-item-quantity-authorized",
                                 ),
+                                on_site_quantity_div,
                             ],
                             className="sc-rubrique-item-details",
                         ),
@@ -659,6 +796,7 @@ class ICPEItemsComponent(BaseComponent):
         self._add_component_title()
 
         if not self._check_data_empty():
+            self._preprocess_data()
             self._add_items_list()
 
         return self.component_layout

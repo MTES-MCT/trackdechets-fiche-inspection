@@ -4,7 +4,7 @@ body {
 }
 
 #layout-container {
-    padding: 20px 120px;
+    padding: 20px 5%;
 }
 
 .row {
@@ -116,6 +116,9 @@ h2 {
         width: 32%;
     }
 
+    .col-lg-5 {
+        width: 48%;
+    }
 
 }
 

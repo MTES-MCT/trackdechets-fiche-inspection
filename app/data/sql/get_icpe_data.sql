@@ -11,3 +11,5 @@ select
 from
     refined_zone_icpe.icpe_siretise
 where siret_clean = '{siret}'
+AND en_vigueur
+and id_regime in ('E','DC','D','A')

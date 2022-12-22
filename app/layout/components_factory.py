@@ -10,6 +10,7 @@ from dash.exceptions import PreventUpdate
 from app.data.data_extract import (
     load_and_preprocess_regions_geographical_data,
     load_departements_regions_data,
+    load_mapping_rubrique_processing_operation_code,
     load_waste_code_data,
 )
 from app.layout.components.company_component import (
@@ -38,6 +39,9 @@ logger = logging.getLogger()
 DEPARTEMENTS_REGION_DATA = load_departements_regions_data()
 REGIONS_GEODATA = load_and_preprocess_regions_geographical_data()
 WASTE_CODES_DATA = load_waste_code_data()
+PROCESSING_OPERATION_CODE_RUBRIQUE_MAPPING = (
+    load_mapping_rubrique_processing_operation_code()
+)
 
 
 def create_company_infos(
@@ -551,23 +555,20 @@ def create_icpe_components(
 
         if not traceability_interruption_component.is_component_empty:
             final_layout.append(
-                dbc.Row(
-                    dbc.Col(
-                        traceability_interruption_component_layout,
-                        lg=6,
-                        md=12,
-                        sm=12,
-                        class_name="col-framed col-print",
-                        id="traceability-interruption-component",
-                    )
+                dbc.Col(
+                    traceability_interruption_component_layout,
+                    lg=5,
+                    md=12,
+                    sm=12,
+                    class_name="col-framed col-print",
+                    id="traceability-interruption-component",
                 )
             )
 
     if icpe_data is not None:
 
         icpe_data = pd.read_json(
-            icpe_data,
-            convert_dates=["date_debut_exploitation", "date_fin_activite"],
+            icpe_data, convert_dates=["date_debut_exploitation", "date_fin_activite"]
         )
 
         icpe_items_component = ICPEItemsComponent(
@@ -575,25 +576,24 @@ def create_icpe_components(
             company_siret=siret,
             icpe_data=icpe_data,
             bs_data_dfs=dfs,
+            mapping_processing_operation_code_rubrique=PROCESSING_OPERATION_CODE_RUBRIQUE_MAPPING,
         )
 
         icpe_items_layout = icpe_items_component.create_layout()
 
         if not icpe_items_component.is_component_empty:
             final_layout.append(
-                dbc.Row(
-                    dbc.Col(
-                        icpe_items_layout,
-                        lg=8,
-                        md=12,
-                        sm=12,
-                        class_name="col-framed col-print",
-                        id="icpe-items-component",
-                    )
+                dbc.Col(
+                    icpe_items_layout,
+                    lg=5,
+                    md=12,
+                    sm=12,
+                    class_name="col-framed col-print",
+                    id="icpe-items-component",
                 ),
             )
 
     if len(final_layout):
-        return final_layout, {"display": "none"}
+        return dbc.Row(final_layout), {"display": "none"}
     else:
         return [html.Div()], {"display": "block"}

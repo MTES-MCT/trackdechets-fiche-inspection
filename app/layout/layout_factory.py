@@ -273,10 +273,11 @@ def get_data_for_siret(n_clicks: int, siret: str):
             engine="dwh",
             date_columns=["date_debut_exploitation", "date_fin_validite"],
             siret=siret,
+            # dtypes={"alinea": str, "rubrique": str},
         )
 
         if len(icpe_data):
-            res.append(icpe_data.to_json())
+            res.append(icpe_data.to_json(date_format="iso"))
         else:
             res.append(None)
 

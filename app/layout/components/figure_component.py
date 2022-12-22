@@ -8,6 +8,7 @@ import geopandas as gpd
 import pandas as pd
 import plotly.graph_objects as go
 from dash import dcc
+import numpy as np
 
 from .base_component import BaseComponent
 from .utils import format_number_str, get_code_departement
@@ -227,13 +228,21 @@ class StockComponent(FigureComponent):
             & (bs_data["sentAt"] >= one_year_ago)
         ]
 
-        self.incoming_data_by_month = incoming_data.groupby(
-            pd.Grouper(key="receivedAt", freq="1M")
-        )["quantityReceived"].sum()
+        self.incoming_data_by_month = (
+            incoming_data.groupby(pd.Grouper(key="receivedAt", freq="1M"))[
+                "quantityReceived"
+            ]
+            .sum()
+            .replace(0, np.nan)
+        )
 
-        self.outgoing_data_by_month = outgoing_data.groupby(
-            pd.Grouper(key="sentAt", freq="1M")
-        )["quantityReceived"].sum()
+        self.outgoing_data_by_month = (
+            outgoing_data.groupby(pd.Grouper(key="sentAt", freq="1M"))[
+                "quantityReceived"
+            ]
+            .sum()
+            .replace(0, np.nan)
+        )
 
     def _check_data_empty(self) -> bool:
 

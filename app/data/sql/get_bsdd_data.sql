@@ -10,6 +10,7 @@ select
     "wasteDetailsQuantity",
     "quantityReceived",
     "wasteDetailsCode" as "wasteCode",
+    "processingOperationDone" as "processing_operation_code",
     "status",
     "transporterTransportMode",
     "noTraceability"
