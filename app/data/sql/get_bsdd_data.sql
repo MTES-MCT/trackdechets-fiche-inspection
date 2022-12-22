@@ -10,8 +10,10 @@ select
     "wasteDetailsQuantity",
     "quantityReceived",
     "wasteDetailsCode" as "wasteCode",
+    "processingOperationDone" as "processing_operation_code",
     "status",
-    "transporterTransportMode"
+    "transporterTransportMode",
+    "noTraceability"
  from
     "default$default"."Form" f
 where

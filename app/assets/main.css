@@ -4,12 +4,11 @@ body {
 }
 
 #layout-container {
-    padding: 20px 120px;
+    padding: 20px 5%;
 }
 
 .row {
     margin-bottom: 20px;
-    justify-content: center;
     justify-content: space-around;
 }
 
@@ -82,10 +81,6 @@ h2 {
     page-break-before: always;
 }
 
-#layout-container.printing #bordereaux-data-section>div:nth-child(1n+3) {
-    page-break-before: always;
-}
-
 #layout-container.printing #bordereaux-data-section {
     page-break-before: always;
 }
@@ -102,7 +97,17 @@ h2 {
     display: none;
 }
 
+#layout-container.printing #traceability-interruption-component {
+    width: 95%;
+}
 
+#layout-container.printing #icpe-items-component {
+    width: 95%;
+}
+
+.no-data-message {
+    text-align: center;
+}
 
 
 @media (min-width: 992px) {
@@ -111,6 +116,9 @@ h2 {
         width: 32%;
     }
 
+    .col-lg-5 {
+        width: 48%;
+    }
 
 }
 

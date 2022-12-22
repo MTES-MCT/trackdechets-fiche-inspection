@@ -8,8 +8,9 @@ select
     "emitterCompanyAddress",
     "destinationCompanySiret" as "recipientCompanySiret",
     "emitterWasteWeightValue" as "wasteDetailsQuantity",
-    "destinationReceptionWasteWeightValue" as "quantityReceived",
+    "destinationReceptionWasteWeightValue"/1000 as "quantityReceived",
     "wasteCode",
+    "destinationOperationCode" as "processing_operation_code",
     "status",
     "transporterTransportMode"
 from

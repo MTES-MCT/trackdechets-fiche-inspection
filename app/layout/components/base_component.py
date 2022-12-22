@@ -1,4 +1,4 @@
-from dash import html
+from dash_extensions.enrich import html
 
 
 class BaseComponent:
@@ -46,7 +46,7 @@ class BaseComponent:
         """
         self.component_layout.append(
             html.Div(
-                f"PAS DE DONNEES POUR LE SIRET {self.company_siret}",
+                f"PAS DE DONNÉES POUR LE SIRET {self.company_siret}",
                 className="c-empty-figure-block",
             )
         )

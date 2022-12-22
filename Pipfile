@@ -16,6 +16,7 @@ dash-auth = "*"
 geopandas = "*"
 fiona = "*"
 pyogrio = "*"
+dash-extensions = "*"
 
 [dev-packages]
 jupyter = "*"
