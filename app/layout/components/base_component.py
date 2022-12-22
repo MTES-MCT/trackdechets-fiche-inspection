@@ -1,4 +1,4 @@
-from dash import html
+from dash_extensions.enrich import html
 
 
 class BaseComponent:

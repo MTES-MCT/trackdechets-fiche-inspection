@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Dict
 from zoneinfo import ZoneInfo
 
-from dash import html
+from dash_extensions.enrich import html
 
 from app.layout.components.base_component import BaseComponent
 

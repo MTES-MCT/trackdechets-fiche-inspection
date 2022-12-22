@@ -4,8 +4,7 @@ from typing import Dict, List
 
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import dcc, html
-from dash.exceptions import PreventUpdate
+from dash_extensions.enrich import dcc, html
 
 from app.data.data_extract import (
     load_and_preprocess_regions_geographical_data,
@@ -135,24 +134,13 @@ def create_bs_components_layouts(
 
     """
 
-    company_data = json.loads(company_data_str)
+    company_data = company_data_str
     siret = company_data["siret"]
 
-    bs_data_df = pd.read_json(
-        bs_data["bs_data"],
-        dtype={
-            "emitterCompanySiret": str,
-            "recipientCompanySiret": str,
-            "wasteDetailsQuantity": float,
-            "quantityReceived": float,
-        },
-        convert_dates=["createdAt", "sentAt", "receivedAt", "processedAt"],
-    )
+    bs_data_df = bs_data["bs_data"]
 
     if bs_data.get("bs_revised_data") is not None:
-        bs_revised_data_df = pd.read_json(
-            bs_data["bs_revised_data"], dtype=False, convert_dates=["createdAt"]
-        )
+        bs_revised_data_df = bs_data["bs_revised_data"]
     else:
         bs_revised_data_df = None
 
@@ -259,18 +247,16 @@ def create_complementary_figure_components(
 
     final_layout = []
 
-    company_data = json.loads(company_data)
     siret = company_data["siret"]
 
-    dfs = load_dfs_with_config(
-        [
-            {"name": "Déchets Dangereux", "data": bsdd_data},
-            {"name": "Amiante", "data": bsda_data},
-            {"name": "Fluides Frigo", "data": bsff_data},
-            {"name": "DASRI", "data": bsdasri_data},
-            {"name": "VHU", "data": bsvhu_data},
-        ]
-    )
+    dfs = {
+        "Déchets Dangereux": bsdd_data,
+        "Amiante": bsda_data,
+        "Fluides Frigo": bsff_data,
+        "DASRI": bsdasri_data,
+        "VHU": bsvhu_data,
+    }
+    dfs = {k: v.get("bs_data") for k, v in dfs.items() if v is not None}
 
     bs_refusals_component = BSRefusalsComponent(
         component_title=r"Nombre de bordereaux refusés",
@@ -304,11 +290,11 @@ def create_complementary_figure_components(
                 if outlier_type == "date_outliers":
                     for colname, value in d.items():
                         additional_data["date_outliers"][bs_type][colname] = (
-                            pd.read_json(value) if value is not None else None
+                            value if value is not None else None
                         )
                 if outlier_type == "quantity_outliers":
                     additional_data["quantity_outliers"][bs_type] = (
-                        pd.read_json(d) if d is not None else None
+                        d if d is not None else None
                     )
 
         additional_info_component = AdditionalInfoComponent(
@@ -362,18 +348,16 @@ def create_onsite_waste_components(
         Layout to insert into main layout.
     """
 
-    company_data = json.loads(company_data)
     siret = company_data["siret"]
 
-    dfs = load_dfs_with_config(
-        [
-            {"name": "Déchets Dangereux", "data": bsdd_data},
-            {"name": "Amiante", "data": bsda_data},
-            {"name": "Fluides Frigo", "data": bsff_data},
-            {"name": "DASRI", "data": bsdasri_data},
-            {"name": "VHU", "data": bsvhu_data},
-        ]
-    )
+    dfs = {
+        "Déchets Dangereux": bsdd_data,
+        "Amiante": bsda_data,
+        "Fluides Frigo": bsff_data,
+        "DASRI": bsdasri_data,
+        "VHU": bsvhu_data,
+    }
+    dfs = {k: v.get("bs_data") for k, v in dfs.items() if v is not None}
 
     storage_stats_component = StorageStatsComponent(
         component_title="Déchets entreposés sur site actuellement",
@@ -480,18 +464,18 @@ def create_waste_input_output_table_component(
         Layout to insert into main layout.
 
     """
-    company_data = json.loads(company_data)
+
     siret = company_data["siret"]
 
-    dfs = load_dfs_with_config(
-        [
-            {"name": "Déchets Dangereux", "data": bsdd_data},
-            {"name": "Amiante", "data": bsda_data},
-            {"name": "Fluides Frigo", "data": bsff_data},
-            {"name": "DASRI", "data": bsdasri_data},
-            {"name": "VHU", "data": bsvhu_data},
-        ]
-    )
+    dfs = {
+        "Déchets Dangereux": bsdd_data,
+        "Amiante": bsda_data,
+        "Fluides Frigo": bsff_data,
+        "DASRI": bsdasri_data,
+        "VHU": bsvhu_data,
+    }
+
+    dfs = {k: v.get("bs_data") for k, v in dfs.items() if v is not None}
 
     input_output_waste_component = InputOutputWasteTableComponent(
         "Déchets entrants sortants par code déchet",
@@ -517,7 +501,6 @@ def create_icpe_components(
     bsvhu_data: str,
 ):
 
-    company_data = json.loads(company_data)
     siret = company_data["siret"]
 
     if all(
@@ -532,15 +515,14 @@ def create_icpe_components(
         for e in [icpe_data, bsdd_data, bsda_data, bsff_data, bsdasri_data, bsvhu_data]
     ):
 
-        dfs = load_dfs_with_config(
-            [
-                {"name": "Déchets Dangereux", "data": bsdd_data},
-                {"name": "Amiante", "data": bsda_data},
-                {"name": "Fluides Frigo", "data": bsff_data},
-                {"name": "DASRI", "data": bsdasri_data},
-                {"name": "VHU", "data": bsvhu_data},
-            ]
-        )
+        dfs = {
+            "Déchets Dangereux": bsdd_data,
+            "Amiante": bsda_data,
+            "Fluides Frigo": bsff_data,
+            "DASRI": bsdasri_data,
+            "VHU": bsvhu_data,
+        }
+        dfs = {k: v.get("bs_data") for k, v in dfs.items() if v is not None}
 
         traceability_interruption_component = TraceabilityInterruptionsComponent(
             component_title="Rupture de traçabilité",
@@ -566,10 +548,6 @@ def create_icpe_components(
             )
 
     if icpe_data is not None:
-
-        icpe_data = pd.read_json(
-            icpe_data, convert_dates=["date_debut_exploitation", "date_fin_activite"]
-        )
 
         icpe_items_component = ICPEItemsComponent(
             "Rubriques ICPE autorisées",

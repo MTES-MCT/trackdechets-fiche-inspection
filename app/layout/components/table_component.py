@@ -1,7 +1,7 @@
 from typing import Dict
 
 import pandas as pd
-from dash import dash_table
+from dash_extensions.enrich import dash_table
 
 from .base_component import BaseComponent
 from .utils import format_number_str

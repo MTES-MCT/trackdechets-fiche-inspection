@@ -4,7 +4,7 @@ import re
 
 import numpy as np
 import pandas as pd
-from dash import html
+from dash_extensions.enrich import html
 
 from .base_component import BaseComponent
 from .utils import format_number_str

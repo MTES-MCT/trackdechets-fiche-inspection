@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import geopandas as gpd
 import pandas as pd
 import plotly.graph_objects as go
-from dash import dcc
+from dash_extensions.enrich import dcc
 import numpy as np
 
 from .base_component import BaseComponent

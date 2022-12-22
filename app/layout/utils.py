@@ -1,7 +1,10 @@
 from typing import Dict, List
+
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import dcc, html
+from dash_extensions.enrich import dcc, html
+
+from app.layout.components.utils import format_number_str
 
 
 def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):
@@ -21,7 +24,7 @@ def add_callout(text: str, width: int, sm_width: int = 0, number: int = None):
     col = dbc.Col(
         html.Div(
             [
-                html.P(app.utils.format_number_str(number), className=number_class)
+                html.P(format_number_str(number), className=number_class)
                 if number
                 else None,
                 dcc.Markdown(text, className=text_class),

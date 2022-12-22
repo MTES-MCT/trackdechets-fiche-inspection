@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import (
+from dash_extensions.enrich import (
     ALL,
     Input,
     Output,
@@ -13,10 +13,11 @@ from dash import (
     callback,
     callback_context,
     dcc,
+    exceptions,
     html,
     no_update,
+    ServersideOutput,
 )
-from dash.exceptions import PreventUpdate
 
 from app.data.data_extract import make_query
 from app.data.utils import get_outliers_datetimes_df, get_quantity_outliers
@@ -179,22 +180,19 @@ def get_layout() -> html.Main:
 
 @callback(
     output=[
-        (
-            Output("company-data", "data"),
-            Output("receipt-agrement-data", "data"),
-            Output("icpe-data", "data"),
-            Output("bsdd-data", "data"),
-            Output("bsda-data", "data"),
-            Output("bsff-data", "data"),
-            Output("bsdasri-data", "data"),
-            Output("bsvhu-data", "data"),
-            Output("additional-data", "data"),
-        ),
+        ServersideOutput("company-data", "data"),
+        ServersideOutput("receipt-agrement-data", "data"),
+        ServersideOutput("icpe-data", "data"),
+        ServersideOutput("bsdd-data", "data"),
+        ServersideOutput("bsda-data", "data"),
+        ServersideOutput("bsff-data", "data"),
+        ServersideOutput("bsdasri-data", "data"),
+        ServersideOutput("bsvhu-data", "data"),
+        ServersideOutput("additional-data", "data"),
         Output("alert-container", "children"),
         Output("main-layout-fiche", "style"),
     ],
     inputs=[Input("submit-siret", "n_clicks"), State("siret", "value")],
-    background=True,
 )
 def get_data_for_siret(n_clicks: int, siret: str):
 
@@ -203,7 +201,15 @@ def get_data_for_siret(n_clicks: int, siret: str):
         res = []
         if siret is None or len(siret) != 14:
             return (
-                (no_update,) * 9,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
                 dbc.Alert(
                     "SIRET non conforme",
                     color="danger",
@@ -226,7 +232,7 @@ def get_data_for_siret(n_clicks: int, siret: str):
                 {"display": "none"},
             )
 
-        res.append(company_data_df.iloc[0].to_json())
+        res.append(company_data_df.iloc[0])
 
         receipts_agreements_data = {}
         for config in [
@@ -264,7 +270,7 @@ def get_data_for_siret(n_clicks: int, siret: str):
                     id=id_,
                 )
                 if len(data) != 0:
-                    receipts_agreements_data[config["name"]] = data.to_json()
+                    receipts_agreements_data[config["name"]] = data
 
         res.append(receipts_agreements_data)
 
@@ -277,7 +283,7 @@ def get_data_for_siret(n_clicks: int, siret: str):
         )
 
         if len(icpe_data):
-            res.append(icpe_data.to_json(date_format="iso"))
+            res.append(icpe_data)
         else:
             res.append(None)
 
@@ -329,7 +335,7 @@ def get_data_for_siret(n_clicks: int, siret: str):
             if len(quantity_outliers) > 0:
                 additional_data["quantity_outliers"][
                     bs_config["bs_type"]
-                ] = quantity_outliers.to_json()
+                ] = quantity_outliers
 
             bs_data_df, date_outliers = get_outliers_datetimes_df(
                 bs_data_df, date_columns=["sentAt", "receivedAt", "processedAt"]
@@ -340,7 +346,7 @@ def get_data_for_siret(n_clicks: int, siret: str):
 
             if len(bs_data_df) != 0:
 
-                to_store["bs_data"] = bs_data_df.to_json()
+                to_store["bs_data"] = bs_data_df
                 if bs_config.get("bs_revised_data") is not None:
                     bs_revised_data_df = make_query(
                         bs_config["bs_revised_data"],
@@ -348,16 +354,16 @@ def get_data_for_siret(n_clicks: int, siret: str):
                         company_id=company_data_df["id"],
                     )
                     if len(bs_revised_data_df) > 0:
-                        to_store["bs_revised_data"] = bs_revised_data_df.to_json()
+                        to_store["bs_revised_data"] = bs_revised_data_df
 
                 res.append(to_store)
             else:
                 res.append(None)
 
         res.append(additional_data)
-        return tuple(res), None, {"display": "revert"}
+        return res + [None, {"display": "revert"}]
     else:
-        raise PreventUpdate
+        raise exceptions.PreventUpdate
 
 
 @callback(
@@ -365,7 +371,7 @@ def get_data_for_siret(n_clicks: int, siret: str):
     Input("company-data", "data"),
 )
 def populate_company_header(company_data: str):
-    company_data = json.loads(company_data)
+    company_data = company_data
     company_name = company_data["name"]
     today_date = datetime.now(tz=ZoneInfo("Europe/Paris")).strftime(r"%d/%m/%Y")
 
@@ -379,11 +385,6 @@ def populate_company_header(company_data: str):
     Input("receipt-agrement-data", "data"),
 )
 def populate_company_details(company_data: str, receipt_agrement_data: str):
-    company_data = json.loads(company_data)
-    receipt_agrement_data = {
-        k: pd.read_json(v, convert_dates=["validityLimit"])
-        for k, v in receipt_agrement_data.items()
-    }
 
     layouts = create_company_infos(company_data, receipt_agrement_data)
 
@@ -600,13 +601,13 @@ def handle_download_outliers_data(nclicks, additional_data):
         if download_request == "download-date-outliers":
             date_outliers = additional_data["date_outliers"][bsdd_type]
 
-            df = pd.concat([pd.read_json(v) for v in date_outliers.values()])
+            df = pd.concat([v for v in date_outliers.values()])
 
         return dcc.send_data_frame(
             df.to_csv, f"{bsdd_type}_donnees_aberrantes.csv", index=False
         )
     else:
-        raise PreventUpdate
+        raise exceptions.PreventUpdate
 
 
 @callback(
@@ -625,6 +626,8 @@ def manage_bs_no_data_message(*args):
         return no_update
 
     for e in args:
+        if e is None:
+            continue
         if isinstance(e, list):
             if e[0]["props"]["children"] is not None:
                 return {"display": "none"}
