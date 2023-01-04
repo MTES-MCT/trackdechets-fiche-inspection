@@ -176,34 +176,21 @@ def create_bs_components_layouts(
         return [html.Div()]
 
     full_layout = [
-        dbc.Row(
-            [
-                dbc.Col(
-                    bs_created_revised_component_layout,
-                    id=components_ids[0],
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    class_name="col-framed col-print",
-                ),
-                dbc.Col(
-                    stock_component_layout,
-                    id=components_ids[1],
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    class_name="col-framed col-print",
-                ),
-                dbc.Col(
-                    annual_stats_layout,
-                    id=components_ids[2],
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    class_name="col-framed col-print",
-                ),
-            ],
-        )
+        html.Div(
+            bs_created_revised_component_layout,
+            id=components_ids[0],
+            className="col-framed col-print",
+        ),
+        html.Div(
+            stock_component_layout,
+            id=components_ids[1],
+            className="col-framed col-print",
+        ),
+        html.Div(
+            annual_stats_layout,
+            id=components_ids[2],
+            className="col-framed col-print",
+        ),
     ]
 
     return full_layout
