@@ -161,6 +161,11 @@
     margin-bottom: 0;
 }
 
+.sc-outlier-quantity {
+    display: flex;
+    justify-content: space-between;
+}
+
 .sc-icpe-item-list {
     list-style-type: none;
 
