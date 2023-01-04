@@ -37,7 +37,15 @@ class FigureComponent(BaseComponent):
         """Adds the block containing the Plotly Figure to the component layout."""
 
         self._create_figure()
-        graph = dcc.Graph(figure=self.figure, config=dict(locale="fr"), responsive=True)
+        graph = dcc.Graph(
+            figure=self.figure,
+            config=dict(
+                locale="fr",
+                displaylogo=False,
+                modeBarButtonsToRemove=["select2d", "lasso2d"],
+            ),
+            responsive=True,
+        )
         self.component_layout.append(graph)
 
     def _create_figure(self) -> None:
@@ -212,8 +220,12 @@ class StockComponent(FigureComponent):
     def _preprocess_data(self) -> None:
 
         bs_data = self.bs_data
-        one_year_ago = (datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=365)).strftime("%Y-%m-01")
-        today_date = datetime.utcnow().replace(tzinfo=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        one_year_ago = (
+            datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=365)
+        ).strftime("%Y-%m-01")
+        today_date = (
+            datetime.utcnow().replace(tzinfo=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        )
 
         incoming_data = bs_data[
             (bs_data["recipientCompanySiret"] == self.company_siret)
@@ -551,6 +563,28 @@ class WasteOriginsComponent(FigureComponent):
 
         self.figure = fig
 
+    def _add_figure_block(self) -> None:
+        """Adds the block containing the Plotly Figure to the component layout."""
+
+        self._create_figure()
+        graph = dcc.Graph(
+            figure=self.figure,
+            config=dict(
+                locale="fr",
+                displaylogo=False,
+                modeBarButtonsToRemove=[
+                    "select2d",
+                    "lasso2d",
+                    "zoom",
+                    "pan",
+                    "zoomIn",
+                    "zoomOut",
+                ],
+            ),
+            responsive=True,
+        )
+        self.component_layout.append(graph)
+
     def create_layout(self) -> list:
 
         self._preprocess_data()
@@ -676,7 +710,13 @@ class WasteOriginsMapComponent(FigureComponent):
         )
 
         fig = go.Figure([trace, trace_2])
-        fig.update_layout(margin={"b": 0, "t": 0, "r": 0, "l": 0}, showlegend=False)
+        fig.update_layout(
+            margin={"b": 0, "t": 0, "r": 0, "l": 0},
+            showlegend=False,
+            xaxis_fixedrange=True,
+            yaxis_fixedrange=True,
+            dragmode=False,
+        )
         fig.update_geos(
             fitbounds="locations",
             visible=False,
@@ -685,6 +725,28 @@ class WasteOriginsMapComponent(FigureComponent):
         )
 
         self.figure = fig
+
+    def _add_figure_block(self) -> None:
+        """Adds the block containing the Plotly Figure to the component layout."""
+
+        self._create_figure()
+        graph = dcc.Graph(
+            figure=self.figure,
+            config=dict(
+                locale="fr",
+                displaylogo=False,
+                modeBarButtonsToRemove=[
+                    "zoom",
+                    "pan",
+                    "select2d",
+                    "lasso2d",
+                    "zoomIn",
+                    "zoomOut",
+                ],
+            ),
+            responsive=True,
+        )
+        self.component_layout.append(graph)
 
     def create_layout(self) -> list:
 
