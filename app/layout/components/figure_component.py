@@ -173,7 +173,7 @@ class BSCreatedAndRevisedComponent(FigureComponent):
         )
 
         fig.update_xaxes(
-            dtick="M1",
+            dtick="M2",
             tickangle=0,
             tickformat="%b",
             tick0=tick0_min,
@@ -321,7 +321,7 @@ class StockComponent(FigureComponent):
             tickangle=0,
             tickformat="%b",
             tick0=min_x,
-            dtick="M1",
+            dtick="M2",
         )
         fig.update_yaxes(exponentformat="B", tickformat=".2s")
 
