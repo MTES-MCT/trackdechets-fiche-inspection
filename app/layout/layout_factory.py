@@ -568,24 +568,30 @@ def populate_icpe_section(*args):
 
 @callback(
     Output("download-df-csv", "data"),
-    Input({"type": "download-date-outliers", "index": ALL}, "n_clicks"),
+    Input({"type": "download-outliers", "index": ALL, "outlier_type": ALL}, "n_clicks"),
     State("additional-data", "data"),
     prevent_initial_call=True,
 )
-def handle_download_outliers_data(nclicks, additional_data):
+def handle_download_date_outliers(nclicks, additional_data):
 
     if any(e is not None for e in nclicks):
         trigger = list(callback_context.triggered_prop_ids.values())[0]
-        download_request = trigger["type"]
+        outlier_type = trigger["outlier_type"]
         bsdd_type = trigger["index"]
-        if download_request == "download-date-outliers":
+        if outlier_type == "date":
             date_outliers = additional_data["date_outliers"][bsdd_type]
 
             df = pd.concat([v for v in date_outliers.values()])
 
-        return dcc.send_data_frame(
-            df.to_csv, f"{bsdd_type}_donnees_aberrantes.csv", index=False
-        )
+            return dcc.send_data_frame(
+                df.to_csv, f"{bsdd_type}_avec_dates_aberrantes.csv", index=False
+            )
+        if outlier_type == "quantity":
+            df = additional_data["quantity_outliers"][bsdd_type]
+
+            return dcc.send_data_frame(
+                df.to_csv, f"{bsdd_type}_avec_quantitees_aberrantes.csv", index=False
+            )
     else:
         raise exceptions.PreventUpdate
 

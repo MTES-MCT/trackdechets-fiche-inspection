@@ -65,7 +65,9 @@ class BSStatsComponent(BaseComponent):
 
     def _preprocess_data(self) -> None:
 
-        one_year_ago = (datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=365)).strftime("%Y-%m-01")
+        one_year_ago = (
+            datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=365)
+        ).strftime("%Y-%m-01")
 
         bs_data = self.bs_data
         bs_revised_data = self.bs_revised_data
@@ -470,8 +472,9 @@ class AdditionalInfoComponent(BaseComponent):
                                 html.Button(
                                     "Télécharger les données correspondantes",
                                     id={
-                                        "type": "download-date-outliers",
+                                        "type": "download-outliers",
                                         "index": bs_type,
+                                        "outlier_type": "date",
                                     },
                                     className="fr-text--xs sc-outlier-date-download-button",
                                 ),
@@ -507,10 +510,27 @@ class AdditionalInfoComponent(BaseComponent):
             quantity_outliers_bs_list_layout.append(
                 html.Li(
                     [
-                        html.Span(f"{bs_type} : ", className="fr-text--lg"),
-                        f"{len(outlier_data)} quantité(s) incohérente(s) (exemple de valeur : {format_number_str(outlier_data.quantityReceived.sort_values(ascending=False).head(1).item(),precision=0)} tonnes)",
+                        html.Div(
+                            [
+                                html.Span(f"{bs_type} : ", className="fr-text--lg"),
+                                (
+                                    f"{len(outlier_data)} quantité(s) incohérente(s) (exemple de valeur : "
+                                    f"{format_number_str(outlier_data.quantityReceived.sort_values(ascending=False).head(1).item(),precision=0)}"
+                                    " tonnes)"
+                                ),
+                            ]
+                        ),
+                        html.Button(
+                            "Télécharger les données correspondantes",
+                            id={
+                                "type": "download-outliers",
+                                "index": bs_type,
+                                "outlier_type": "quantity",
+                            },
+                            className="fr-text--xs sc-outlier-quantity-download-button",
+                        ),
                     ],
-                    className="fr-text--sm sc-date-outlier-example",
+                    className="fr-text--sm  sc-outlier-quantity-example",
                 )
             )
 
