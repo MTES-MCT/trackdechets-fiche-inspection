@@ -91,6 +91,7 @@ class BSCreatedAndRevisedComponent(FigureComponent):
         self.bs_data = bs_data
         self.bs_revised_data = bs_revised_data
         self.bs_emitted_by_month = None
+        self.bs_received_by_month = None
         self.bs_revised_by_month = None
 
     def _preprocess_bs_data(self) -> None:
@@ -103,7 +104,14 @@ class BSCreatedAndRevisedComponent(FigureComponent):
             .id.count()
         )
 
+        bs_received_by_month = (
+            bs_data[bs_data["recipientCompanySiret"] == self.company_siret]
+            .groupby(pd.Grouper(key="receivedAt", freq="1M"))
+            .id.count()
+        )
+
         self.bs_emitted_by_month = bs_emitted_by_month
+        self.bs_received_by_month = bs_received_by_month
 
     def _preprocess_bs_revised_data(self) -> None:
         """Preprocess raw revised 'bordereaux' data to prepare it for plotting."""
@@ -130,24 +138,39 @@ class BSCreatedAndRevisedComponent(FigureComponent):
     def _create_figure(self) -> None:
 
         bs_emitted_by_month = self.bs_emitted_by_month
+        bs_received_by_month = self.bs_received_by_month
         bs_revised_by_month = self.bs_revised_by_month
 
-        text_size = 14
+        text_size = 12
 
-        bs_bars = go.Bar(
+        bs_emitted_bars = go.Bar(
             x=bs_emitted_by_month.index,
             y=bs_emitted_by_month,
-            name="BSDD émis",
+            name="Bordereaux émis",
             text=bs_emitted_by_month,
             textfont_size=text_size,
             textposition="outside",
             constraintext="none",
         )
 
-        tick0_min = bs_emitted_by_month.index.min()
-        max_y = bs_emitted_by_month.max()
+        bs_received_bars = go.Bar(
+            x=bs_received_by_month.index,
+            y=bs_received_by_month,
+            name="Bordereaux reçus",
+            text=bs_received_by_month,
+            textfont_size=text_size,
+            textposition="outside",
+            constraintext="none",
+        )
 
-        fig = go.Figure([bs_bars])
+        tick0_min = min(
+            bs_emitted_by_month.index.min(), bs_received_by_month.index.min()
+        )
+        max_y = max(bs_emitted_by_month.max(), bs_received_by_month.max())
+
+        fig = go.Figure([bs_emitted_bars, bs_received_bars])
+
+        max_points = max(len(bs_emitted_by_month), len(bs_received_by_month))
         if bs_revised_by_month is not None:
             fig.add_trace(
                 go.Bar(
@@ -160,23 +183,29 @@ class BSCreatedAndRevisedComponent(FigureComponent):
                     constraintext="none",
                 )
             )
-            tick0_min = min(
-                bs_emitted_by_month.index.min(), bs_revised_by_month.index.min()
-            )
-            max_y = max(bs_emitted_by_month.max(), bs_revised_by_month.max())
+            tick0_min = min(tick0_min, bs_revised_by_month.index.min())
+            max_y = max(max_y, bs_revised_by_month.max())
+            max_points = max(max_points, len(bs_revised_by_month))
 
         fig.update_layout(
             margin={
                 "t": 20,
             },
             legend={"orientation": "h", "y": -0.05, "x": 0.5},
+            showlegend=True,
         )
 
+        ticklabelstep = 2
+        if max_points < 3:
+            ticklabelstep = 1
+
         fig.update_xaxes(
-            dtick="M2",
+            dtick="M1",
             tickangle=0,
             tickformat="%b",
             tick0=tick0_min,
+            ticks="outside",
+            ticklabelstep=ticklabelstep,
         )
 
         fig.update_yaxes(range=[0, max_y * 1.1])
@@ -317,11 +346,16 @@ class StockComponent(FigureComponent):
             min_x = min(
                 incoming_data_by_month.index.min(), outgoing_data_by_month.index.min()
             )
+
+        dtick = "M2"
+        if max(len(incoming_data_by_month), len(outgoing_data_by_month)) < 3:
+            dtick = "M1"
+
         fig.update_xaxes(
             tickangle=0,
             tickformat="%b",
             tick0=min_x,
-            dtick="M2",
+            dtick=dtick,
         )
         fig.update_yaxes(exponentformat="B", tickformat=".2s")
 

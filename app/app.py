@@ -4,7 +4,7 @@ Dash dash_app configuration
 import locale
 from os import getenv
 
-from dash_extensions.enrich import DashProxy, ServersideOutputTransform, FileSystemStore
+from dash_extensions.enrich import DashProxy, ServersideOutputTransform
 import dash_auth
 import dash_bootstrap_components as dbc
 from dash import DiskcacheManager

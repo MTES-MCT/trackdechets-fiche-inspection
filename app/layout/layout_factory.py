@@ -422,7 +422,7 @@ def populate_bs_components(
             "data": bsdd_data,
             "name": "BSDD",
             "components_titles": [
-                "BSD Dangereux émis et corrigés",
+                "BSD Dangereux émis, reçus et corrigés",
                 "Quantité de déchets dangereux en tonnes",
                 "BSD dangereux sur l'année",
             ],
@@ -432,7 +432,7 @@ def populate_bs_components(
             "data": bsda_data,
             "name": "BSDA",
             "components_titles": [
-                "BSD Amiante émis et corrigés",
+                "BSD Amiante émis, reçus et corrigés",
                 "Quantité de déchets amiante en tonnes",
                 "BSD d'amiante sur l'année",
             ],
@@ -442,7 +442,7 @@ def populate_bs_components(
             "data": bsff_data,
             "name": "BSFF",
             "components_titles": [
-                "BS Fluides Frigo émis et corrigés",
+                "BS Fluides Frigo émis, reçus et corrigés",
                 "Quantité de déchets fluides frigo en tonnes",
                 "BS Fluides Frigo sur l'année",
             ],
@@ -452,7 +452,7 @@ def populate_bs_components(
             "data": bsdasri_data,
             "name": "BSDASRI",
             "components_titles": [
-                "BS DASRI émis et corrigés",
+                "BS DASRI émis, reçus et corrigés",
                 "Quantité de DASRI en tonnes",
                 "BS DASRI sur l'année",
             ],
@@ -466,7 +466,7 @@ def populate_bs_components(
             "data": bsff_data,
             "name": "BSFF",
             "components_titles": [
-                "BS VHU émis et corrigés",
+                "BS VHU émis, reçus et corrigés",
                 "Quantité de VHU en tonnes",
                 "BS VHU sur l'année",
             ],
