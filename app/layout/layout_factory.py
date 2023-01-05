@@ -1,12 +1,13 @@
 import logging
 from datetime import datetime, timezone
+from typing import Dict
 
-import dash_bootstrap_components as dbc
 import pandas as pd
 from dash_extensions.enrich import (
     ALL,
     Input,
     Output,
+    ServersideOutput,
     State,
     callback,
     callback_context,
@@ -14,7 +15,6 @@ from dash_extensions.enrich import (
     exceptions,
     html,
     no_update,
-    ServersideOutput,
 )
 
 from app.data.data_extract import make_query
@@ -34,11 +34,10 @@ logger = logging.getLogger()
 def get_layout() -> html.Main:
     layout = html.Main(
         children=[
-            dbc.Container(
-                fluid=True,
+            html.Div(
                 id="layout-container",
                 children=[
-                    dbc.Row(
+                    html.Div(
                         [
                             html.Div(
                                 [
@@ -81,12 +80,10 @@ def get_layout() -> html.Main:
                     dcc.Loading(
                         html.Div(
                             [
-                                dbc.Row(
-                                    [
-                                        dbc.Col(id="company-name", width=12),
-                                    ]
+                                html.Div(id="company-name"),
+                                html.Div(
+                                    id="company-infos", className="grid-container"
                                 ),
-                                html.Div(id="company-infos"),
                                 html.Div(
                                     [
                                         html.H2(
@@ -97,8 +94,10 @@ def get_layout() -> html.Main:
                                             id="bs-no-data",
                                             className="fr-text--lead no-data-message",
                                         ),
-                                        html.Div(id="bs-components"),
-                                        html.Div(id="complementary-figures"),
+                                        html.Div(
+                                            id="bs-components",
+                                            className="grid-container",
+                                        ),
                                     ],
                                     id="bordereaux-data-section",
                                 ),
@@ -112,7 +111,10 @@ def get_layout() -> html.Main:
                                             id="stock-no-data",
                                             className="fr-text--lead no-data-message",
                                         ),
-                                        html.Div(id="stock-data-figures"),
+                                        html.Div(
+                                            id="stock-data-figures",
+                                            className="grid-container",
+                                        ),
                                     ],
                                     id="stock-data-section",
                                 ),
@@ -133,7 +135,10 @@ def get_layout() -> html.Main:
                                             id="icpe-no-data",
                                             className="fr-text--lead no-data-message",
                                         ),
-                                        html.Div(id="icpe-section"),
+                                        html.Div(
+                                            id="icpe-section",
+                                            className="grid-container",
+                                        ),
                                     ],
                                     id="icpe",
                                 ),
@@ -208,9 +213,8 @@ def get_data_for_siret(n_clicks: int, siret: str):
                 no_update,
                 no_update,
                 no_update,
-                dbc.Alert(
+                html.Div(
                     "SIRET non conforme",
-                    color="danger",
                 ),
                 {"display": "none"},
             )
@@ -231,9 +235,8 @@ def get_data_for_siret(n_clicks: int, siret: str):
                 no_update,
                 no_update,
                 no_update,
-                dbc.Alert(
+                html.Div(
                     "Pas d'entreprise inscrite sur Trackdechets avec ce SIRET.",
-                    color="danger",
                 ),
                 {"display": "none"},
             )
@@ -406,15 +409,17 @@ def populate_company_details(company_data: str, receipt_agrement_data: str):
         Input("bsff-data", "data"),
         Input("bsdasri-data", "data"),
         Input("bsvhu-data", "data"),
+        Input("additional-data", "data"),
     ),
 )
 def populate_bs_components(
     company_data: str,
-    bsdd_data: pd.DataFrame,
-    bsda_data: pd.DataFrame,
-    bsff_data: pd.DataFrame,
-    bsdasri_data: pd.DataFrame,
-    bsvhu_data: pd.DataFrame,
+    bsdd_data: Dict[str, pd.DataFrame],
+    bsda_data: Dict[str, pd.DataFrame],
+    bsff_data: Dict[str, pd.DataFrame],
+    bsdasri_data: Dict[str, pd.DataFrame],
+    bsvhu_data: Dict[str, pd.DataFrame],
+    additional_data: Dict[str, Dict[str, pd.DataFrame]],
 ):
 
     configs = [
@@ -463,8 +468,8 @@ def populate_bs_components(
             ],
         },
         {
-            "data": bsff_data,
-            "name": "BSFF",
+            "data": bsvhu_data,
+            "name": "BSVHU",
             "components_titles": [
                 "BS VHU émis, reçus et corrigés",
                 "Quantité de VHU en tonnes",
@@ -491,24 +496,19 @@ def populate_bs_components(
             )
         )
 
+    layouts.extend(
+        create_complementary_figure_components(
+            company_data,
+            bsdd_data,
+            bsda_data,
+            bsff_data,
+            bsdasri_data,
+            bsvhu_data,
+            additional_data,
+        )
+    )
+
     return layouts
-
-
-@callback(
-    output=(Output("complementary-figures", "children")),
-    inputs=(
-        Input("company-data", "data"),
-        Input("bsdd-data", "data"),
-        Input("bsda-data", "data"),
-        Input("bsff-data", "data"),
-        Input("bsdasri-data", "data"),
-        Input("bsvhu-data", "data"),
-        Input("additional-data", "data"),
-    ),
-)
-def populate_complementary_figures_section(*args):
-    layout = create_complementary_figure_components(*args)
-    return layout
 
 
 @callback(
