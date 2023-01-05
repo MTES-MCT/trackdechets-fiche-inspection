@@ -8,12 +8,12 @@ function relayoutPlotly() {
 }
 
 function resizeForPrinting(e) {
-    console.log('Before print');
+
     const layoutContainer = document.querySelector("#layout-container")
     layoutContainer.className = "printing"
 
     relayoutPlotly()
-    //setTimeout(print, 500)
+    setTimeout(print, 600)
 
 }
 
