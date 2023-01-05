@@ -166,6 +166,22 @@
     justify-content: space-between;
 }
 
+#icpe-items-component {
+    grid-column: span 2;
+}
+
+
+.sc-info-item {
+    display: flex;
+    margin-top: 15px;
+}
+
+.sc-info-forbidden-image {
+    max-width: 10%;
+    margin-right: 2rem;
+}
+
+
 
 .sc-icpe-item-list {
     list-style-type: none;

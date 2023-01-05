@@ -24,6 +24,7 @@ from app.layout.components.figure_component import (
 from app.layout.components.stats_component import (
     AdditionalInfoComponent,
     BSStatsComponent,
+    ICPEInfoComponent,
     ICPEItemsComponent,
     StorageStatsComponent,
     TraceabilityInterruptionsComponent,
@@ -497,6 +498,25 @@ def create_icpe_components(
                     traceability_interruption_component_layout,
                     className="col-framed col-print",
                     id="traceability-interruption-component",
+                )
+            )
+
+        icpe_info_component = ICPEInfoComponent(
+            component_title="Informations sur l'établissement",
+            company_siret=siret,
+            icpe_data=icpe_data,
+            bs_data_dfs=dfs,
+            mapping_processing_operation_code_rubrique=PROCESSING_OPERATION_CODE_RUBRIQUE_MAPPING,
+        )
+
+        icpe_info_component_layout = icpe_info_component.create_layout()
+
+        if not icpe_info_component.is_component_empty:
+            final_layout.append(
+                html.Div(
+                    icpe_info_component_layout,
+                    className="col-framed col-print",
+                    id="icpe-info-component",
                 )
             )
 

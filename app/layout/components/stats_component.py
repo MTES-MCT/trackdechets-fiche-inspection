@@ -4,6 +4,7 @@ import re
 
 import numpy as np
 import pandas as pd
+import dash
 from dash_extensions.enrich import html
 
 from .base_component import BaseComponent
@@ -576,6 +577,8 @@ class ICPEItemsComponent(BaseComponent):
         DataFrame containing list of ICPE authorized items
     bs_data_dfs: dict
         Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+    mapping_processing_operation_code_rubrique: DataFrame
+        Mapping between operation codes and rubriques.
 
     """
 
@@ -818,6 +821,134 @@ class ICPEItemsComponent(BaseComponent):
         if not self._check_data_empty():
             self._preprocess_data()
             self._add_items_list()
+
+        return self.component_layout
+
+
+class ICPEInfoComponent(BaseComponent):
+    """Component that displays information about the company relative to ICPE.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    icpe_data: DataFrame
+        DataFrame containing list of ICPE authorized items
+    bs_data_dfs: dict
+        Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+    mapping_processing_operation_code_rubrique: DataFrame
+        Mapping between operation codes and rubriques.
+    """
+
+    def __init__(
+        self,
+        component_title: str,
+        company_siret: str,
+        icpe_data: pd.DataFrame,
+        bs_data_dfs: Dict[str, pd.DataFrame],
+        mapping_processing_operation_code_rubrique: pd.DataFrame,
+    ) -> None:
+
+        super().__init__(component_title, company_siret)
+
+        self.icpe_data = icpe_data
+        self.bs_data_dfs = bs_data_dfs
+
+        self.unit_pattern = re.compile(
+            r"""^t$
+                |^t\/.*$
+                |citerne
+                |bouteille
+                |cabine
+                |tonne
+                |aire
+                |cartouche
+            """,
+            re.X,
+        )
+        self.mapping_processing_operation_code_rubrique = (
+            mapping_processing_operation_code_rubrique
+        )
+
+        self.had_dangerous_waste_onsite_while_forbidden = False
+        self.has_done_ttr_while_forbidden = False
+
+    def _preprocess_data(self) -> None:
+
+        full_df = pd.concat(self.bs_data_dfs.values())
+
+        if (
+            full_df["wasteCode"].str.contains("*", regex=False).any()
+            or full_df["wastePop"].any()
+        ) and (
+            (self.icpe_data is None)
+            or (not self.icpe_data["rubrique"].isin(["2718", "2760", "2770"]).any())
+        ):
+            self.had_dangerous_waste_onsite_while_forbidden = True
+
+        if (
+            full_df["processing_operation_code"]
+            .isin(["D13", "D14", "D15", "R12", "R13"])
+            .any()
+        ) and (
+            (self.icpe_data is None) or not (self.icpe_data["rubrique"] == "2718").any()
+        ):
+            self.has_done_ttr_while_forbidden = True
+
+    def _add_stats(self):
+
+        if self.had_dangerous_waste_onsite_while_forbidden:
+            self.component_layout.append(
+                html.Div(
+                    [
+                        html.Img(
+                            src="/assets/images/forbidden.png",
+                            className="sc-info-forbidden-image",
+                        ),
+                        html.Div(
+                            "Attention, pas de rubriques déchet déclarées mais l'établissement a reçu des déchets dangereux"
+                        ),
+                    ],
+                    className="sc-info-item",
+                )
+            )
+
+        if self.has_done_ttr_while_forbidden:
+            self.component_layout.append(
+                html.Div(
+                    [
+                        html.Img(
+                            src="/assets/images/forbidden.png",
+                            className="sc-info-forbidden-image",
+                        ),
+                        html.Div(
+                            "L'établissement a fait du Tri, Transit, Regroupement sans rubrique déclarée"
+                        ),
+                    ],
+                    className="sc-info-item",
+                )
+            )
+
+    def _check_data_empty(self) -> bool:
+
+        if not (
+            self.had_dangerous_waste_onsite_while_forbidden
+            or self.has_done_ttr_while_forbidden
+        ):
+            self.is_component_empty = True
+            return True
+
+        self.is_component_empty = False
+        return False
+
+    def create_layout(self) -> list:
+        self._add_component_title()
+        self._preprocess_data()
+
+        if not self._check_data_empty():
+            self._add_stats()
 
         return self.component_layout
 
