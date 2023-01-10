@@ -177,8 +177,10 @@
 }
 
 .sc-info-forbidden-image {
-    max-width: 10%;
-    margin-right: 2rem;
+    max-width: 20%;
+    margin-right: 2em;
+    height: auto;
+    aspect-ratio: 1/1;
 }
 
 
