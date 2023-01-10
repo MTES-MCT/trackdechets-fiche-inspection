@@ -24,6 +24,7 @@ from app.layout.components.figure_component import (
 from app.layout.components.stats_component import (
     AdditionalInfoComponent,
     BSStatsComponent,
+    ICPEInfoComponent,
     ICPEItemsComponent,
     StorageStatsComponent,
     TraceabilityInterruptionsComponent,
@@ -480,23 +481,22 @@ def create_icpe_components(
         }
         dfs = {k: v.get("bs_data") for k, v in dfs.items() if v is not None}
 
-        traceability_interruption_component = TraceabilityInterruptionsComponent(
-            component_title="Rupture de traçabilité",
+        icpe_info_component = ICPEInfoComponent(
+            component_title="Informations sur l'établissement",
             company_siret=siret,
-            bsdd_data=dfs["Déchets Dangereux"],
-            waste_codes_df=WASTE_CODES_DATA,
+            icpe_data=icpe_data,
+            bs_data_dfs=dfs,
+            mapping_processing_operation_code_rubrique=PROCESSING_OPERATION_CODE_RUBRIQUE_MAPPING,
         )
 
-        traceability_interruption_component_layout = (
-            traceability_interruption_component.create_layout()
-        )
+        icpe_info_component_layout = icpe_info_component.create_layout()
 
-        if not traceability_interruption_component.is_component_empty:
+        if not icpe_info_component.is_component_empty:
             final_layout.append(
                 html.Div(
-                    traceability_interruption_component_layout,
+                    icpe_info_component_layout,
                     className="col-framed col-print",
-                    id="traceability-interruption-component",
+                    id="icpe-info-component",
                 )
             )
 
@@ -520,6 +520,26 @@ def create_icpe_components(
                     id="icpe-items-component",
                 ),
             )
+
+    traceability_interruption_component = TraceabilityInterruptionsComponent(
+        component_title="Rupture de traçabilité",
+        company_siret=siret,
+        bsdd_data=dfs["Déchets Dangereux"],
+        waste_codes_df=WASTE_CODES_DATA,
+    )
+
+    traceability_interruption_component_layout = (
+        traceability_interruption_component.create_layout()
+    )
+
+    if not traceability_interruption_component.is_component_empty:
+        final_layout.append(
+            html.Div(
+                traceability_interruption_component_layout,
+                className="col-framed col-print",
+                id="traceability-interruption-component",
+            )
+        )
 
     if len(final_layout):
         return final_layout, {"display": "none"}

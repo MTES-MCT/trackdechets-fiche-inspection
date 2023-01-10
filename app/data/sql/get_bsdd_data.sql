@@ -13,7 +13,8 @@ select
     "processingOperationDone" as "processing_operation_code",
     "status",
     "transporterTransportMode",
-    "noTraceability"
+    "noTraceability",
+    "wasteDetailsPop" as "wastePop"
  from
     "default$default"."Form" f
 where

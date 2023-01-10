@@ -1,6 +1,6 @@
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Dict
-import re
 
 import numpy as np
 import pandas as pd
@@ -576,6 +576,8 @@ class ICPEItemsComponent(BaseComponent):
         DataFrame containing list of ICPE authorized items
     bs_data_dfs: dict
         Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+    mapping_processing_operation_code_rubrique: DataFrame
+        Mapping between operation codes and rubriques.
 
     """
 
@@ -610,8 +612,12 @@ class ICPEItemsComponent(BaseComponent):
         )
 
         self.on_site_2718_quantity = 0
+        self.max_2718_quantity = (0, None)
+
         self.on_site_2760_quantity = 0
+
         self.avg_daily_2770_quantity = 0
+        self.max_2770_quantity = (0, None)
 
     def _preprocess_data(self) -> None:
 
@@ -638,59 +644,87 @@ class ICPEItemsComponent(BaseComponent):
             )
 
             preprocessed_inputs_dfs.append(
-                df[
-                    (df["recipientCompanySiret"] == self.company_siret)
-                    & (df["processedAt"].dt.year == actual_year)
-                ]
+                df[(df["recipientCompanySiret"] == self.company_siret)]
             )
             preprocessed_output_dfs.append(
-                df[
-                    (df["emitterCompanySiret"] == self.company_siret)
-                    & (df["processedAt"].dt.year == actual_year)
-                ]
+                df[(df["emitterCompanySiret"] == self.company_siret)]
             )
 
         if len(preprocessed_inputs_dfs) == 0:
             return
 
+        if all(len(df) == 0 for df in preprocessed_inputs_dfs):
+            return
+
+        # 2718 preprocessing
         preprocessed_inputs = pd.concat(preprocessed_inputs_dfs)
+        preprocessed_outputs = pd.concat(preprocessed_output_dfs)
+
+        preprocessed_inputs_filtered = preprocessed_inputs[
+            (preprocessed_inputs["rubrique"] == "2718")
+        ].set_index("processedAt")
+
+        preprocessed_outputs_filtered = preprocessed_outputs[
+            (preprocessed_outputs["rubrique"] == "2718")
+        ].set_index("processedAt")
+        preprocessed_outputs_filtered["quantityReceived"] *= -1
+
+        preprocessed_inputs_outputs = pd.concat(
+            (
+                preprocessed_inputs_filtered,
+                preprocessed_outputs_filtered,
+            ),
+        ).sort_index()
+        if len(preprocessed_inputs_outputs) > 0:
+            preprocessed_inputs_outputs["stock"] = (
+                preprocessed_inputs_outputs["quantityReceived"].cumsum().sort_index()
+            )
+            max_stock = preprocessed_inputs_outputs.sort_values(
+                "stock", ascending=False
+            ).iloc[0]
+            actual_quantity = preprocessed_inputs_outputs.iloc[-1]
+            if actual_quantity["stock"] > 0:
+                self.on_site_2718_quantity = actual_quantity["stock"]
+
+            if max_stock["stock"] > 0:
+                self.max_2718_quantity = (
+                    max_stock["stock"],
+                    max_stock.name.date().strftime("%d-%m-%Y"),
+                )
+
+        # 2760 preprocessing
         quantity = preprocessed_inputs.loc[
-            preprocessed_inputs["rubrique"] == "2718", "quantityReceived"
-        ].sum()
-
-        if len(preprocessed_output_dfs) > 0:
-            preprocessed_outputs = pd.concat(preprocessed_output_dfs)
-            quantity -= preprocessed_outputs.loc[
-                preprocessed_outputs["rubrique"] == "2718", "quantityReceived"
-            ].sum()
-
-        if quantity > 0:
-            self.on_site_2718_quantity = quantity
-
-        quantity = preprocessed_inputs.loc[
-            preprocessed_inputs["rubrique"] == "2760-1", "quantityReceived"
+            (preprocessed_inputs["rubrique"] == "2760-1")
+            & (preprocessed_outputs["processedAt"].dt.year == actual_year),
+            "quantityReceived",
         ].sum()
         if quantity > 0:
             self.on_site_2760_quantity = quantity
 
+        # 2770 preprocessing
         quantity = (
             preprocessed_inputs.loc[preprocessed_inputs["rubrique"] == "2770"]
             .groupby(pd.Grouper(key="processedAt", freq="1D"))["quantityReceived"]
             .sum()
-            .mean()
         )
-        if quantity > 0:
-            self.avg_daily_2770_quantity = quantity
+        if len(quantity) > 0:
+            self.avg_daily_2770_quantity = quantity.mean()
+            max_quantity = quantity.sort_values(ascending=False)
+
+            self.max_2770_quantity = (
+                max_quantity[0],
+                max_quantity.index[0].date().strftime("%d-%m-%Y"),
+            )
 
     def _add_items_list(self) -> None:
 
         icpe_data = pd.concat(
             [
                 self.icpe_data.loc[
-                    self.icpe_data["rubrique"].isin([2718, 2760, 2790, 2770])
+                    self.icpe_data["rubrique"].isin(["2718", "2760", "2790", "2770"])
                 ],
                 self.icpe_data.loc[
-                    ~self.icpe_data["rubrique"].isin([2718, 2760, 2790])
+                    ~self.icpe_data["rubrique"].isin(["2718", "2760", "2790", "2770"])
                 ].sort_values("rubrique"),
             ]
         )
@@ -702,12 +736,40 @@ class ICPEItemsComponent(BaseComponent):
                 rubrique_str += f"-{item.alinea}"
 
             on_site_quantity_div = html.Div()
-            if (rubrique_str == "2718") and (self.on_site_2718_quantity > 0):
-                quantity = format_number_str(self.on_site_2718_quantity, precision=0)
-                on_site_quantity_div = html.Div(
-                    [html.Span(f"{quantity} t"), " sur site"],
-                    className="sc-onsite-quantity",
-                )
+            if (str(item.rubrique) == "2718") and (self.on_site_2718_quantity > 0):
+                quantity = format_number_str(self.on_site_2718_quantity)
+
+                if self.max_2718_quantity == (0, None):
+                    on_site_quantity_div = html.Div()
+                else:
+                    max_quantity, max_day = self.max_2718_quantity
+
+                    max_quantity_div = html.Div(
+                        [html.Span(max_quantity), f" t sur site maximum le {max_day}"],
+                        className="sc-onsite-quantity-detail",
+                    )
+                    if item.volume is not None and max_quantity > item.volume:
+                        actual_quantity_str = (
+                            f"⚠️ {format_number_str(max_quantity)} t sur site"
+                        )
+                        max_quantity_div = html.Div(
+                            [
+                                html.Span(actual_quantity_str),
+                                f" maximum dépassé le {max_day}",
+                            ],
+                            className="sc-onsite-quantity-detail",
+                        )
+
+                    on_site_quantity_div = html.Div(
+                        [
+                            html.Div(
+                                [html.Span(f"{quantity} t"), " sur site"],
+                                className="sc-onsite-quantity-detail",
+                            ),
+                            max_quantity_div,
+                        ],
+                        className="sc-onsite-quantity",
+                    )
             elif (rubrique_str == "2760-1") and (self.on_site_2760_quantity > 0):
                 quantity = format_number_str(self.on_site_2760_quantity, precision=0)
                 quantity_frac = int(100 * self.on_site_2760_quantity / item.volume)
@@ -742,10 +804,33 @@ class ICPEItemsComponent(BaseComponent):
                     ],
                     className="sc-grid-onsite-quantity",
                 )
-            elif (rubrique_str == "2770") and (self.avg_daily_2770_quantity > 0):
+            elif (str(item.rubrique) == "2770") and (self.avg_daily_2770_quantity > 0):
                 quantity = format_number_str(self.avg_daily_2770_quantity)
+                max_quantity, max_day = self.max_2770_quantity
+
+                actual_quantity_str = f"{format_number_str(max_quantity)} t/j"
+                max_quantity_div = html.Div(
+                    [html.Span(actual_quantity_str), f" maximum le {max_day}"],
+                    className="sc-onsite-quantity-detail",
+                )
+                if item.volume is not None and max_quantity > item.volume:
+                    actual_quantity_str = f"⚠️ {format_number_str(max_quantity)} t/j"
+                    max_quantity_div = html.Div(
+                        [
+                            html.Span(actual_quantity_str),
+                            f" maximum dépassé le {max_day}",
+                        ],
+                        className="sc-onsite-quantity-detail",
+                    )
+
                 on_site_quantity_div = html.Div(
-                    [html.Span(f"{quantity} t/j"), " moyenne annuelle"],
+                    [
+                        html.Div(
+                            [html.Span(f"{quantity} t/j"), "moyenne annuelle"],
+                            className="sc-onsite-quantity-detail",
+                        ),
+                        max_quantity_div,
+                    ],
                     className="sc-onsite-quantity",
                 )
 
@@ -818,6 +903,134 @@ class ICPEItemsComponent(BaseComponent):
         if not self._check_data_empty():
             self._preprocess_data()
             self._add_items_list()
+
+        return self.component_layout
+
+
+class ICPEInfoComponent(BaseComponent):
+    """Component that displays information about the company relative to ICPE.
+
+    Parameters
+    ----------
+    component_title : str
+        Title of the component that will be displayed in the component layout.
+    company_siret: str
+        SIRET number of the establishment for which the data is displayed (used for data preprocessing).
+    icpe_data: DataFrame
+        DataFrame containing list of ICPE authorized items
+    bs_data_dfs: dict
+        Dict with key being the 'bordereau' type and values the DataFrame containing the bordereau data.
+    mapping_processing_operation_code_rubrique: DataFrame
+        Mapping between operation codes and rubriques.
+    """
+
+    def __init__(
+        self,
+        component_title: str,
+        company_siret: str,
+        icpe_data: pd.DataFrame,
+        bs_data_dfs: Dict[str, pd.DataFrame],
+        mapping_processing_operation_code_rubrique: pd.DataFrame,
+    ) -> None:
+
+        super().__init__(component_title, company_siret)
+
+        self.icpe_data = icpe_data
+        self.bs_data_dfs = bs_data_dfs
+
+        self.unit_pattern = re.compile(
+            r"""^t$
+                |^t\/.*$
+                |citerne
+                |bouteille
+                |cabine
+                |tonne
+                |aire
+                |cartouche
+            """,
+            re.X,
+        )
+        self.mapping_processing_operation_code_rubrique = (
+            mapping_processing_operation_code_rubrique
+        )
+
+        self.had_dangerous_waste_onsite_while_forbidden = False
+        self.has_done_ttr_while_forbidden = False
+
+    def _preprocess_data(self) -> None:
+
+        full_df = pd.concat(self.bs_data_dfs.values())
+
+        if (
+            full_df["wasteCode"].str.contains("*", regex=False).any()
+            or full_df["wastePop"].any()
+        ) and (
+            (self.icpe_data is None)
+            or (not self.icpe_data["rubrique"].isin(["2718", "2760", "2770"]).any())
+        ):
+            self.had_dangerous_waste_onsite_while_forbidden = True
+
+        if (
+            full_df["processing_operation_code"]
+            .isin(["D13", "D14", "D15", "R12", "R13"])
+            .any()
+        ) and (
+            (self.icpe_data is None) or not (self.icpe_data["rubrique"] == "2718").any()
+        ):
+            self.has_done_ttr_while_forbidden = True
+
+    def _add_stats(self):
+
+        if self.had_dangerous_waste_onsite_while_forbidden:
+            self.component_layout.append(
+                html.Div(
+                    [
+                        html.Img(
+                            src="/assets/images/forbidden.png",
+                            className="sc-info-forbidden-image",
+                        ),
+                        html.Div(
+                            "Attention, pas de rubriques déchet déclarées mais l'établissement a reçu des déchets dangereux"
+                        ),
+                    ],
+                    className="sc-info-item",
+                )
+            )
+
+        if self.has_done_ttr_while_forbidden:
+            self.component_layout.append(
+                html.Div(
+                    [
+                        html.Img(
+                            src="/assets/images/forbidden.png",
+                            className="sc-info-forbidden-image",
+                        ),
+                        html.Div(
+                            "L'établissement a fait du Tri, Transit, Regroupement sans rubrique déclarée"
+                        ),
+                    ],
+                    className="sc-info-item",
+                )
+            )
+
+    def _check_data_empty(self) -> bool:
+
+        if not (
+            self.had_dangerous_waste_onsite_while_forbidden
+            or self.has_done_ttr_while_forbidden
+        ):
+            self.is_component_empty = True
+            return True
+
+        self.is_component_empty = False
+        return False
+
+    def create_layout(self) -> list:
+        self._add_component_title()
+        self._preprocess_data()
+
+        if not self._check_data_empty():
+            self._add_stats()
 
         return self.component_layout
 

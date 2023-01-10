@@ -62,7 +62,7 @@ h2 {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     column-gap: 1em;
-    row-gap: 0.5em;
+    row-gap: 1em;
 }
 
 
@@ -89,16 +89,7 @@ h2 {
     line-height: initial;
 }
 
-#layout-container.printing .page-break {
-    justify-content: center;
-    page-break-before: always;
-}
-
 #layout-container.printing #bordereaux-data-section {
-    page-break-before: always;
-}
-
-#layout-container.printing #stock-data-section {
     page-break-before: always;
 }
 
@@ -110,17 +101,24 @@ h2 {
     display: none;
 }
 
-#layout-container.printing #traceability-interruption-component {
-    width: 95%;
+
+#layout-container.printing #icpe-section {
+    grid-template-columns: 1fr;
 }
 
-#layout-container.printing #icpe-items-component {
-    width: 95%;
+
+#layout-container.printing #icpe-section>div {
+    grid-column: span 1;
 }
 
-.no-data-message {
+#layout-container.printing #input-output-waste {
+    page-break-before: always;
+}
+
+#icpe-section .no-data-message {
     text-align: center;
 }
+
 
 
 @media (min-width: 992px) {

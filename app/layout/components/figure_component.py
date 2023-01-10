@@ -98,17 +98,19 @@ class BSCreatedAndRevisedComponent(FigureComponent):
         """Preprocess raw 'bordereaux' data to prepare it for plotting."""
         bs_data = self.bs_data
 
-        bs_emitted_by_month = (
-            bs_data[bs_data["emitterCompanySiret"] == self.company_siret]
-            .groupby(pd.Grouper(key="createdAt", freq="1M"))
-            .id.count()
-        )
+        bs_emitted = bs_data[
+            bs_data["emitterCompanySiret"] == self.company_siret
+        ].dropna(subset=["createdAt"])
+        bs_emitted_by_month = bs_emitted.groupby(
+            pd.Grouper(key="createdAt", freq="1M")
+        ).id.count()
 
-        bs_received_by_month = (
-            bs_data[bs_data["recipientCompanySiret"] == self.company_siret]
-            .groupby(pd.Grouper(key="receivedAt", freq="1M"))
-            .id.count()
-        )
+        bs_received = bs_data[
+            bs_data["recipientCompanySiret"] == self.company_siret
+        ].dropna(subset=["receivedAt"])
+        bs_received_by_month = bs_received.groupby(
+            pd.Grouper(key="receivedAt", freq="1M")
+        ).id.count()
 
         self.bs_emitted_by_month = bs_emitted_by_month
         self.bs_received_by_month = bs_received_by_month
@@ -126,9 +128,13 @@ class BSCreatedAndRevisedComponent(FigureComponent):
     def _check_data_empty(self) -> bool:
 
         bs_emitted_by_month = self.bs_emitted_by_month
+        bs_received_by_month = self.bs_received_by_month
         bs_revised_by_month = self.bs_revised_by_month
 
-        if len(bs_emitted_by_month) == 0 and bs_revised_by_month is None:
+        if (
+            len(bs_emitted_by_month) == len(bs_received_by_month) == 0
+            and bs_revised_by_month is None
+        ):
             self.is_component_empty = True
             return True
 
