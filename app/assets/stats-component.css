@@ -277,3 +277,14 @@
     grid-column: 50/-3;
     text-align: right;
 }
+
+.sc-onsite-quantity {
+    display: flex;
+    justify-content: space-between;
+    min-width: 60%;
+}
+
+.sc-onsite-quantity-detail {
+    display: flex;
+    flex-direction: column;
+}

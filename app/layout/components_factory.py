@@ -481,26 +481,6 @@ def create_icpe_components(
         }
         dfs = {k: v.get("bs_data") for k, v in dfs.items() if v is not None}
 
-        traceability_interruption_component = TraceabilityInterruptionsComponent(
-            component_title="Rupture de traçabilité",
-            company_siret=siret,
-            bsdd_data=dfs["Déchets Dangereux"],
-            waste_codes_df=WASTE_CODES_DATA,
-        )
-
-        traceability_interruption_component_layout = (
-            traceability_interruption_component.create_layout()
-        )
-
-        if not traceability_interruption_component.is_component_empty:
-            final_layout.append(
-                html.Div(
-                    traceability_interruption_component_layout,
-                    className="col-framed col-print",
-                    id="traceability-interruption-component",
-                )
-            )
-
         icpe_info_component = ICPEInfoComponent(
             component_title="Informations sur l'établissement",
             company_siret=siret,
@@ -540,6 +520,26 @@ def create_icpe_components(
                     id="icpe-items-component",
                 ),
             )
+
+    traceability_interruption_component = TraceabilityInterruptionsComponent(
+        component_title="Rupture de traçabilité",
+        company_siret=siret,
+        bsdd_data=dfs["Déchets Dangereux"],
+        waste_codes_df=WASTE_CODES_DATA,
+    )
+
+    traceability_interruption_component_layout = (
+        traceability_interruption_component.create_layout()
+    )
+
+    if not traceability_interruption_component.is_component_empty:
+        final_layout.append(
+            html.Div(
+                traceability_interruption_component_layout,
+                className="col-framed col-print",
+                id="traceability-interruption-component",
+            )
+        )
 
     if len(final_layout):
         return final_layout, {"display": "none"}

@@ -54,19 +54,24 @@ class CompanyComponent(BaseComponent):
 
         profiles_elements = []
         company_types = self.company_data["companyTypes"][1:-1].split(",")
-        company_types_formatted = [
-            self.company_types_mapping[ctype] for ctype in company_types
-        ]
 
-        for e in company_types_formatted:
-            profiles_elements.append(html.Li(e))
+        if company_types != [""]:
+            company_types_formatted = [
+                self.company_types_mapping[ctype] for ctype in company_types
+            ]
+
+            for e in company_types_formatted:
+                profiles_elements.append(html.Li(e))
+            profiles_list = html.Ul(profiles_elements)
+        else:
+            profiles_list = html.Div("Pas de profil renseigné.")
 
         layout = [
             html.Div(f"SIRET : {company_siret}", id="cc-siret"),
             html.Div(
                 [
                     html.Div("Profils établissements :", className="fr-text--bold"),
-                    html.Ul(profiles_elements),
+                    profiles_list,
                 ]
             ),
             html.Div(company_address, id="cc-address"),
@@ -123,8 +128,10 @@ class ReceiptAgrementsComponent(BaseComponent):
             for line in data.itertuples():
                 validity_str = ""
                 if "validityLimit" in line._fields:
-                    if line.validityLimit < datetime.utcnow().replace(tzinfo=timezone.utc):
-                        validity_str = f"expiré depuis le {line.validityLimit}"
+                    if line.validityLimit < datetime.utcnow().replace(
+                        tzinfo=timezone.utc
+                    ):
+                        validity_str = f"expiré depuis le {line.validityLimit:%d/%m/%Y}"
                     else:
                         validity_str = f"valide jusqu'au {line.validityLimit:%d/%m/%Y}"
 
