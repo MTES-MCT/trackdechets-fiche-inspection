@@ -71,7 +71,7 @@ h2 {
 }
 
 #layout-container.printing .grid-container {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, calc(50% - 1em));
 }
 
 #layout-container.printing .col-print {
