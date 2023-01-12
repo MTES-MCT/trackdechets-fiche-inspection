@@ -12,7 +12,8 @@ select
     "wasteCode",
     "destinationOperationCode" as "processing_operation_code",
     "status",
-    "transporterTransportMode"
+    "transporterTransportMode",
+    "wastePop"
 from
     "default$default"."Bsda"
 where

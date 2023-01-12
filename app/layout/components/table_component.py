@@ -70,9 +70,6 @@ class InputOutputWasteTableComponent(BaseComponent):
         )
 
         final_df = final_df[final_df["quantityReceived"] > 0]
-        final_df["quantityReceived"] = final_df["quantityReceived"].apply(
-            format_number_str, precision=2
-        )
         self.preprocessed_df = (
             final_df[
                 ["wasteCode", "description", "Entrant/Sortant", "quantityReceived"]
@@ -102,6 +99,16 @@ class InputOutputWasteTableComponent(BaseComponent):
                 data=self.preprocessed_df.to_dict("records"),
                 columns=[
                     {"id": c, "name": c, "selectable": False}
+                    if c != "Quantité (t)"
+                    else {
+                        "id": c,
+                        "name": c,
+                        "selectable": False,
+                        "format": dash_table.Format.Format(
+                            group=True, groups=[3], group_delimiter=" "
+                        ),
+                        "type": "numeric",
+                    }
                     for c in self.preprocessed_df.columns
                 ],
                 cell_selectable=False,
@@ -128,14 +135,14 @@ class InputOutputWasteTableComponent(BaseComponent):
                     },
                     {
                         "if": {"column_id": "Code déchet"},
-                        "width": "115px",
+                        "width": "125px",
                         "maxWidth": "1155px",
                         "text-align": "left",
                     },
                     {
                         "if": {"column_id": "Entrant/Sortant"},
-                        "width": "145px",
-                        "maxWidth": "145px",
+                        "width": "175px",
+                        "maxWidth": "175px",
                         "text-align": "center",
                     },
                     {
@@ -147,6 +154,8 @@ class InputOutputWasteTableComponent(BaseComponent):
                     {"if": {"column_id": "Description"}, "text-align": "left"},
                 ],
                 style_header={"text-align": "center"},
+                sort_action="native",
+                sort_mode="single",
             )
         )
 

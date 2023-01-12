@@ -1,8 +1,6 @@
-import json
 import logging
 from typing import Dict, List
 
-import dash_bootstrap_components as dbc
 import pandas as pd
 from dash_extensions.enrich import dcc, html
 
@@ -26,12 +24,12 @@ from app.layout.components.figure_component import (
 from app.layout.components.stats_component import (
     AdditionalInfoComponent,
     BSStatsComponent,
+    ICPEInfoComponent,
     ICPEItemsComponent,
     StorageStatsComponent,
     TraceabilityInterruptionsComponent,
 )
 from app.layout.components.table_component import InputOutputWasteTableComponent
-from app.layout.utils import load_dfs_with_config
 
 logger = logging.getLogger()
 
@@ -68,43 +66,31 @@ def create_company_infos(
     receipts_agreements_component = ReceiptAgrementsComponent(receipts_agreements_data)
 
     full_layout = [
-        dbc.Row(
-            [
-                dbc.Col(
-                    company_component.create_layout(),
-                    id="company-details",
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    className="col-print",
-                ),
-                dbc.Col(
-                    receipts_agreements_component.create_layout(),
-                    id="receipts-agrements-details",
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    className="col-print",
-                ),
-                dbc.Col(
-                    dcc.Markdown(
-                        """
+        html.Div(
+            company_component.create_layout(),
+            id="company-details",
+            className="col-print",
+        ),
+        html.Div(
+            receipts_agreements_component.create_layout(),
+            id="receipts-agrements-details",
+            className="col-print",
+        ),
+        html.Div(
+            dcc.Markdown(
+                """
 Les données pour cet établissement peuvent être consultées sur Trackdéchets.
 
 Elles comprennent les bordereaux de suivi de déchets (BSD) dématérialisés, mais ne comprennent pas :
 - les éventuels BSD papiers non dématérialisés,
 - les bons d’enlèvements (huiles usagées et pneus)
 - les annexes 1 (petites quantités)""",
-                        id="general-infos",
-                    ),
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    className="col-print",
-                ),
-            ]
-        )
+                id="general-infos",
+            ),
+            className="col-print",
+        ),
     ]
+
     return full_layout
 
 
@@ -176,34 +162,21 @@ def create_bs_components_layouts(
         return [html.Div()]
 
     full_layout = [
-        dbc.Row(
-            [
-                dbc.Col(
-                    bs_created_revised_component_layout,
-                    id=components_ids[0],
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    class_name="col-framed col-print",
-                ),
-                dbc.Col(
-                    stock_component_layout,
-                    id=components_ids[1],
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    class_name="col-framed col-print",
-                ),
-                dbc.Col(
-                    annual_stats_layout,
-                    id=components_ids[2],
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    class_name="col-framed col-print",
-                ),
-            ],
-        )
+        html.Div(
+            bs_created_revised_component_layout,
+            id=components_ids[0],
+            className="col-framed col-print",
+        ),
+        html.Div(
+            stock_component_layout,
+            id=components_ids[1],
+            className="col-framed col-print",
+        ),
+        html.Div(
+            annual_stats_layout,
+            id=components_ids[2],
+            className="col-framed col-print",
+        ),
     ]
 
     return full_layout
@@ -211,11 +184,11 @@ def create_bs_components_layouts(
 
 def create_complementary_figure_components(
     company_data: pd.Series,
-    bsdd_data: pd.DataFrame,
-    bsda_data: pd.DataFrame,
-    bsff_data: pd.DataFrame,
-    bsdasri_data: pd.DataFrame,
-    bsvhu_data: pd.DataFrame,
+    bsdd_data: Dict[str, pd.DataFrame],
+    bsda_data: Dict[str, pd.DataFrame],
+    bsff_data: Dict[str, pd.DataFrame],
+    bsdasri_data: Dict[str, pd.DataFrame],
+    bsvhu_data: Dict[str, pd.DataFrame],
     additional_data: Dict[str, Dict[str, pd.DataFrame]],
 ) -> html.Div:
     """Creates the components about refused 'bordereaux' and complementary informations about outliers
@@ -223,18 +196,18 @@ def create_complementary_figure_components(
 
     Parameters
     ----------
-    company_data : DataFrame
+    company_data : dict
         Serialized company data.
-    bsdd_data: DataFrame
-        DataFrame containing data for BSDDs.
-    bsda_data: DataFrame
-        DataFrame containing data for BSDAs.
-    bsff_data: DataFrame
-        DataFrame containing data for BSFFs.
-    bsdasri_data: DataFrame
-        DataFrame containing data for BSDASRIs.
-    bsvhu_data: DataFrame
-        DataFrame containing data for BSVHUs.
+    bsdd_data: dict
+        dict with DataFrame containing data for BSDDs.
+    bsda_data: dict
+        dict with DataFrame containing data for BSDAs.
+    bsff_data: dict
+        dict with DataFrame containing data for BSFFs.
+    bsdasri_data: dict
+        dict with DataFrame containing data for BSDASRIs.
+    bsvhu_data: dict
+        dict with DataFrame containing data for BSVHUs.
     additional_data : dict
         Dict of DataFrame containing outliers data. Key are 'bordereau' type and values are outliers.
 
@@ -267,13 +240,10 @@ def create_complementary_figure_components(
 
     if not bs_refusals_component.is_component_empty:
         final_layout.append(
-            dbc.Col(
+            html.Div(
                 bs_refusals_component.component_layout,
                 id="bs-refusal",
-                lg=3,
-                md=5,
-                sm=12,
-                class_name="col-framed  col-print",
+                className="col-framed  col-print",
             )
         )
 
@@ -303,17 +273,14 @@ def create_complementary_figure_components(
         )
 
         final_layout.append(
-            dbc.Col(
+            html.Div(
                 additional_info_component.create_layout(),
                 id="bs-additional-info",
-                lg=8,
-                md=12,
-                sm=12,
-                class_name="col-framed  col-print",
+                className="col-framed  col-print",
             )
         )
 
-    return html.Div(dbc.Row(final_layout))
+    return final_layout
 
 
 def create_onsite_waste_components(
@@ -398,33 +365,20 @@ def create_onsite_waste_components(
         return [html.Div()], {"display": "block"}
 
     final_layout = [
-        dbc.Row(
-            [
-                dbc.Col(
-                    storage_stats_component_layout,
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    id="waste-stock",
-                    class_name="col-framed col-print",
-                ),
-                dbc.Col(
-                    waste_origins_component_layout,
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    id="waste-origins",
-                    class_name="col-framed col-print",
-                ),
-                dbc.Col(
-                    waste_origins_map_component_layout,
-                    lg=3,
-                    md=5,
-                    sm=12,
-                    id="waste-origins-map",
-                    class_name="col-framed col-print",
-                ),
-            ]
+        html.Div(
+            storage_stats_component_layout,
+            id="waste-stock",
+            className="col-framed col-print",
+        ),
+        html.Div(
+            waste_origins_component_layout,
+            id="waste-origins",
+            className="col-framed col-print",
+        ),
+        html.Div(
+            waste_origins_map_component_layout,
+            id="waste-origins-map",
+            className="col-framed col-print",
         ),
     ]
 
@@ -485,7 +439,11 @@ def create_waste_input_output_table_component(
     layout = input_output_waste_component.create_layout()
 
     if not input_output_waste_component.is_component_empty:
-        return [dbc.Row(dbc.Col(layout, lg=12, md=12, sm=12))], {"display": "none"}
+        return [
+            html.Div(
+                layout,
+            )
+        ], {"display": "none"}
     else:
         return [html.Div()], {"display": "block"}
 
@@ -523,26 +481,22 @@ def create_icpe_components(
         }
         dfs = {k: v.get("bs_data") for k, v in dfs.items() if v is not None}
 
-        traceability_interruption_component = TraceabilityInterruptionsComponent(
-            component_title="Rupture de traçabilité",
+        icpe_info_component = ICPEInfoComponent(
+            component_title="Informations sur l'établissement",
             company_siret=siret,
-            bsdd_data=dfs["Déchets Dangereux"],
-            waste_codes_df=WASTE_CODES_DATA,
+            icpe_data=icpe_data,
+            bs_data_dfs=dfs,
+            mapping_processing_operation_code_rubrique=PROCESSING_OPERATION_CODE_RUBRIQUE_MAPPING,
         )
 
-        traceability_interruption_component_layout = (
-            traceability_interruption_component.create_layout()
-        )
+        icpe_info_component_layout = icpe_info_component.create_layout()
 
-        if not traceability_interruption_component.is_component_empty:
+        if not icpe_info_component.is_component_empty:
             final_layout.append(
-                dbc.Col(
-                    traceability_interruption_component_layout,
-                    lg=5,
-                    md=12,
-                    sm=12,
-                    class_name="col-framed col-print",
-                    id="traceability-interruption-component",
+                html.Div(
+                    icpe_info_component_layout,
+                    className="col-framed col-print",
+                    id="icpe-info-component",
                 )
             )
 
@@ -560,17 +514,34 @@ def create_icpe_components(
 
         if not icpe_items_component.is_component_empty:
             final_layout.append(
-                dbc.Col(
+                html.Div(
                     icpe_items_layout,
-                    lg=5,
-                    md=12,
-                    sm=12,
-                    class_name="col-framed col-print",
+                    className="col-framed col-print",
                     id="icpe-items-component",
                 ),
             )
 
+    traceability_interruption_component = TraceabilityInterruptionsComponent(
+        component_title="Rupture de traçabilité",
+        company_siret=siret,
+        bsdd_data=dfs["Déchets Dangereux"],
+        waste_codes_df=WASTE_CODES_DATA,
+    )
+
+    traceability_interruption_component_layout = (
+        traceability_interruption_component.create_layout()
+    )
+
+    if not traceability_interruption_component.is_component_empty:
+        final_layout.append(
+            html.Div(
+                traceability_interruption_component_layout,
+                className="col-framed col-print",
+                id="traceability-interruption-component",
+            )
+        )
+
     if len(final_layout):
-        return dbc.Row(final_layout), {"display": "none"}
+        return final_layout, {"display": "none"}
     else:
         return [html.Div()], {"display": "block"}

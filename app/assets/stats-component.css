@@ -161,6 +161,31 @@
     margin-bottom: 0;
 }
 
+.sc-outlier-quantity-example {
+    display: flex;
+    justify-content: space-between;
+}
+
+#icpe-items-component {
+    grid-column: span 2;
+}
+
+
+.sc-info-item {
+    display: flex;
+    margin-top: 15px;
+    align-items: center;
+}
+
+.sc-info-forbidden-image {
+    margin-right: 2em;
+    object-fit: contain;
+    max-width: 20%;
+    height: auto;
+}
+
+
+
 .sc-icpe-item-list {
     list-style-type: none;
 
@@ -254,4 +279,15 @@
     grid-row: 1;
     grid-column: 50/-3;
     text-align: right;
+}
+
+.sc-onsite-quantity {
+    display: flex;
+    justify-content: space-between;
+    min-width: 60%;
+}
+
+.sc-onsite-quantity-detail {
+    display: flex;
+    flex-direction: column;
 }

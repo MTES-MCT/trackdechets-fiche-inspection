@@ -1,12 +1,13 @@
 import logging
-from datetime import datetime,timezone
+from datetime import datetime, timezone
+from typing import Dict
 
-import dash_bootstrap_components as dbc
 import pandas as pd
 from dash_extensions.enrich import (
     ALL,
     Input,
     Output,
+    ServersideOutput,
     State,
     callback,
     callback_context,
@@ -14,7 +15,6 @@ from dash_extensions.enrich import (
     exceptions,
     html,
     no_update,
-    ServersideOutput,
 )
 
 from app.data.data_extract import make_query
@@ -34,11 +34,10 @@ logger = logging.getLogger()
 def get_layout() -> html.Main:
     layout = html.Main(
         children=[
-            dbc.Container(
-                fluid=True,
+            html.Div(
                 id="layout-container",
                 children=[
-                    dbc.Row(
+                    html.Div(
                         [
                             html.Div(
                                 [
@@ -81,12 +80,10 @@ def get_layout() -> html.Main:
                     dcc.Loading(
                         html.Div(
                             [
-                                dbc.Row(
-                                    [
-                                        dbc.Col(id="company-name", width=12),
-                                    ]
+                                html.Div(id="company-name"),
+                                html.Div(
+                                    id="company-infos", className="grid-container"
                                 ),
-                                html.Div(id="company-infos"),
                                 html.Div(
                                     [
                                         html.H2(
@@ -97,12 +94,10 @@ def get_layout() -> html.Main:
                                             id="bs-no-data",
                                             className="fr-text--lead no-data-message",
                                         ),
-                                        html.Div(id="bsdd-figures"),
-                                        html.Div(id="bsda-figures"),
-                                        html.Div(id="bsff-figures"),
-                                        html.Div(id="bsdasri-figures"),
-                                        html.Div(id="bsvhu-figures"),
-                                        html.Div(id="complementary-figures"),
+                                        html.Div(
+                                            id="bs-components",
+                                            className="grid-container",
+                                        ),
                                     ],
                                     id="bordereaux-data-section",
                                 ),
@@ -116,23 +111,34 @@ def get_layout() -> html.Main:
                                             id="stock-no-data",
                                             className="fr-text--lead no-data-message",
                                         ),
-                                        html.Div(id="stock-data-figures"),
+                                        html.Div(
+                                            id="stock-data-figures",
+                                            className="grid-container",
+                                        ),
                                     ],
                                     id="stock-data-section",
-                                    className="page-break",
                                 ),
                                 html.Div(
                                     [
                                         html.H2(
                                             "Donnée installation classée pour la protection de l'Environnement (ICPE)",
-                                            className="page-break",
+                                        ),
+                                        html.Div(
+                                            (
+                                                "Les données ICPE proviennent de la base Géorisque. "
+                                                "Ces données ne sont pas à jour et synchronisées pour le moment faute de lien entre Trackdéchets et Géorisque."
+                                            ),
+                                            className="fr-text--lg",
                                         ),
                                         html.Div(
                                             "PAS DE DONNÉES POUR CET ÉTABLISSEMENT",
                                             id="icpe-no-data",
                                             className="fr-text--lead no-data-message",
                                         ),
-                                        html.Div(id="icpe-section"),
+                                        html.Div(
+                                            id="icpe-section",
+                                            className="grid-container",
+                                        ),
                                     ],
                                     id="icpe",
                                 ),
@@ -140,7 +146,6 @@ def get_layout() -> html.Main:
                                     [
                                         html.H2(
                                             "Liste des déchets entrants/sortants",
-                                            className="page-break",
                                         ),
                                         html.Div(
                                             "PAS DE DONNÉES POUR CET ÉTABLISSEMENT",
@@ -197,7 +202,7 @@ def get_data_for_siret(n_clicks: int, siret: str):
     if n_clicks is not None:
 
         res = []
-        if siret is None or len(siret) != 14:
+        if siret is None or len(siret) != 14 or (not siret.isdigit()):
             return (
                 no_update,
                 no_update,
@@ -208,9 +213,8 @@ def get_data_for_siret(n_clicks: int, siret: str):
                 no_update,
                 no_update,
                 no_update,
-                dbc.Alert(
+                html.Div(
                     "SIRET non conforme",
-                    color="danger",
                 ),
                 {"display": "none"},
             )
@@ -222,10 +226,17 @@ def get_data_for_siret(n_clicks: int, siret: str):
         if len(company_data_df) == 0:
 
             return (
-                (no_update,) * 9,
-                dbc.Alert(
-                    "Aucune entreprise avec ce SIRET inscrite sur Trackdéchets",
-                    color="danger",
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                html.Div(
+                    "Pas d'entreprise inscrite sur Trackdechets avec ce SIRET.",
                 ),
                 {"display": "none"},
             )
@@ -390,130 +401,7 @@ def populate_company_details(company_data: str, receipt_agrement_data: str):
 
 
 @callback(
-    output=(Output("bsdd-figures", "children"),),
-    inputs=(
-        Input("company-data", "data"),
-        Input("bsdd-data", "data"),
-    ),
-)
-def populate_bsdd_components(company_data: str, bsdd_data: str):
-
-    if bsdd_data is None:
-        logger.info("Pas de données BSDD trouvées pour le siret")
-        return [html.Div()]
-
-    layout = create_bs_components_layouts(
-        bsdd_data,
-        company_data,
-        [
-            "BSD Dangereux émis et corrigés",
-            "Quantité de déchets dangereux en tonnes",
-            "BSD dangereux sur l'année",
-        ],
-        ["bsdd-created-rectified", "bsdd-stock", "bsdd-stats"],
-    )
-
-    return layout
-
-
-@callback(
-    output=Output("bsda-figures", "children"),
-    inputs=(Input("company-data", "data"), Input("bsda-data", "data")),
-)
-def populate_bsda_components(company_data: str, bsda_data: str):
-
-    if bsda_data is None or len(bsda_data) == 0:
-        logger.info("Pas de données BSDA trouvées pour le siret")
-        return [html.Div()]
-
-    layout = create_bs_components_layouts(
-        bsda_data,
-        company_data,
-        [
-            "BSD Amiante émis et corrigés",
-            "Quantité de déchets amiante en tonnes",
-            "BSD d'amiante sur l'année",
-        ],
-        ["bsda-created-rectified", "bsda-stock", "bsda-stats"],
-    )
-
-    return layout
-
-
-@callback(
-    output=Output("bsff-figures", "children"),
-    inputs=[Input("company-data", "data"), Input("bsff-data", "data")],
-)
-def populate_bsff_components(company_data: str, bsff_data: str):
-
-    if bsff_data is None or len(bsff_data) == 0:
-        logger.info("Pas de données BSDFF trouvées pour le siret")
-        return [html.Div()]
-
-    layout = create_bs_components_layouts(
-        bsff_data,
-        company_data,
-        [
-            "BS Fluides Frigo émis et corrigés",
-            "Quantité de déchets fluides frigo en tonnes",
-            "BS Fluides Frigo sur l'année",
-        ],
-        ["bsda-created-rectified", "bsda-stock", "bsda-stats"],
-    )
-
-    return layout
-
-
-@callback(
-    output=Output("bsdasri-figures", "children"),
-    inputs=(Input("company-data", "data"), Input("bsdasri-data", "data")),
-)
-def populate_bsdasri_components(company_data: str, bsdasri_data: str):
-
-    if bsdasri_data is None:
-        logger.info("Pas de données BSDASRI trouvées pour le siret")
-        return [html.Div()]
-
-    layout = create_bs_components_layouts(
-        bsdasri_data,
-        company_data,
-        [
-            "BS DASRI émis et corrigés",
-            "Quantité de DASRI en tonnes",
-            "BS DASRI sur l'année",
-        ],
-        ["bsdasri-created-rectified", "bsdasri-stock", "bsdasri-stats"],
-    )
-
-    return layout
-
-
-@callback(
-    output=Output("bsvhu-figures", "children"),
-    inputs=(Input("company-data", "data"), Input("bsvhu-data", "data")),
-)
-def populate_bsvhu_components(company_data: str, bsvhu_data: str):
-
-    if bsvhu_data is None:
-        logger.info("Pas de données BSDA trouvées pour le siret")
-        return [html.Div()]
-
-    layout = create_bs_components_layouts(
-        bsvhu_data,
-        company_data,
-        [
-            "BS VHU émis et corrigés",
-            "Quantité de VHU en tonnes",
-            "BS VHU sur l'année",
-        ],
-        ["bsvhu-created-rectified", "bsvhu-stock", "bsvhu-stats"],
-    )
-
-    return layout
-
-
-@callback(
-    output=(Output("complementary-figures", "children")),
+    output=(Output("bs-components", "children"),),
     inputs=(
         Input("company-data", "data"),
         Input("bsdd-data", "data"),
@@ -524,9 +412,103 @@ def populate_bsvhu_components(company_data: str, bsvhu_data: str):
         Input("additional-data", "data"),
     ),
 )
-def populate_complementary_figures_section(*args):
-    layout = create_complementary_figure_components(*args)
-    return layout
+def populate_bs_components(
+    company_data: str,
+    bsdd_data: Dict[str, pd.DataFrame],
+    bsda_data: Dict[str, pd.DataFrame],
+    bsff_data: Dict[str, pd.DataFrame],
+    bsdasri_data: Dict[str, pd.DataFrame],
+    bsvhu_data: Dict[str, pd.DataFrame],
+    additional_data: Dict[str, Dict[str, pd.DataFrame]],
+):
+
+    configs = [
+        {
+            "data": bsdd_data,
+            "name": "BSDD",
+            "components_titles": [
+                "BSD Dangereux émis, reçus et corrigés",
+                "Quantité de déchets dangereux en tonnes",
+                "BSD dangereux sur l'année",
+            ],
+            "components_ids": ["bsdd-created-rectified", "bsdd-stock", "bsdd-stats"],
+        },
+        {
+            "data": bsda_data,
+            "name": "BSDA",
+            "components_titles": [
+                "BSD Amiante émis, reçus et corrigés",
+                "Quantité de déchets amiante en tonnes",
+                "BSD d'amiante sur l'année",
+            ],
+            "components_ids": ["bsda-created-rectified", "bsda-stock", "bsda-stats"],
+        },
+        {
+            "data": bsff_data,
+            "name": "BSFF",
+            "components_titles": [
+                "BS Fluides Frigo émis, reçus et corrigés",
+                "Quantité de déchets fluides frigo en tonnes",
+                "BS Fluides Frigo sur l'année",
+            ],
+            "components_ids": ["bsff-created-rectified", "bsff-stock", "bsff-stats"],
+        },
+        {
+            "data": bsdasri_data,
+            "name": "BSDASRI",
+            "components_titles": [
+                "BS DASRI émis, reçus et corrigés",
+                "Quantité de DASRI en tonnes",
+                "BS DASRI sur l'année",
+            ],
+            "components_ids": [
+                "bsdasri-created-rectified",
+                "bsdasri-stock",
+                "bsdasri-stats",
+            ],
+        },
+        {
+            "data": bsvhu_data,
+            "name": "BSVHU",
+            "components_titles": [
+                "BS VHU émis, reçus et corrigés",
+                "Quantité de VHU en tonnes",
+                "BS VHU sur l'année",
+            ],
+            "components_ids": ["bsvhu-created-rectified", "bsvhu-stock", "bsvhu-stats"],
+        },
+    ]
+
+    layouts = []
+    bs_without_data = []
+    for config in configs:
+
+        if config["data"] is None:
+            bs_without_data.append(config["name"])
+            continue
+
+        layouts.extend(
+            create_bs_components_layouts(
+                config["data"],
+                company_data,
+                config["components_titles"],
+                config["components_ids"],
+            )
+        )
+
+    layouts.extend(
+        create_complementary_figure_components(
+            company_data,
+            bsdd_data,
+            bsda_data,
+            bsff_data,
+            bsdasri_data,
+            bsvhu_data,
+            additional_data,
+        )
+    )
+
+    return layouts
 
 
 @callback(
@@ -567,7 +549,7 @@ def populate_waste_input_output_table(*args):
 
 
 @callback(
-    output=(Output("icpe-section", "children"), Output("icpe-no-data", "style")),
+    output=[Output("icpe-section", "children"), Output("icpe-no-data", "style")],
     inputs=(
         Input("company-data", "data"),
         Input("icpe-data", "data"),
@@ -586,57 +568,43 @@ def populate_icpe_section(*args):
 
 @callback(
     Output("download-df-csv", "data"),
-    Input({"type": "download-date-outliers", "index": ALL}, "n_clicks"),
+    Input({"type": "download-outliers", "index": ALL, "outlier_type": ALL}, "n_clicks"),
     State("additional-data", "data"),
     prevent_initial_call=True,
 )
-def handle_download_outliers_data(nclicks, additional_data):
+def handle_download_date_outliers(nclicks, additional_data):
 
     if any(e is not None for e in nclicks):
         trigger = list(callback_context.triggered_prop_ids.values())[0]
-        download_request = trigger["type"]
+        outlier_type = trigger["outlier_type"]
         bsdd_type = trigger["index"]
-        if download_request == "download-date-outliers":
+        if outlier_type == "date":
             date_outliers = additional_data["date_outliers"][bsdd_type]
 
             df = pd.concat([v for v in date_outliers.values()])
 
-        return dcc.send_data_frame(
-            df.to_csv, f"{bsdd_type}_donnees_aberrantes.csv", index=False
-        )
+            return dcc.send_data_frame(
+                df.to_csv, f"{bsdd_type}_avec_dates_aberrantes.csv", index=False
+            )
+        if outlier_type == "quantity":
+            df = additional_data["quantity_outliers"][bsdd_type]
+
+            return dcc.send_data_frame(
+                df.to_csv, f"{bsdd_type}_avec_quantitees_aberrantes.csv", index=False
+            )
     else:
         raise exceptions.PreventUpdate
 
 
 @callback(
     output=Output("bs-no-data", "style"),
-    inputs=(
-        Input("bsdd-figures", "children"),
-        Input("bsda-figures", "children"),
-        Input("bsff-figures", "children"),
-        Input("bsvhu-figures", "children"),
-        Input("bsdasri-figures", "children"),
-        Input("complementary-figures", "children"),
-    ),
+    inputs=(Input("bs-components", "children"),),
 )
-def manage_bs_no_data_message(*args):
-    if all(arg is None for arg in args):
+def manage_bs_no_data_message(bs_components):
+    if bs_components is None:
         return no_update
 
-    for e in args:
-        if e is None:
-            continue
-        if isinstance(e, list):
-            if e[0]["props"]["children"] is not None:
-                return {"display": "none"}
-            else:
-                return {"display": "block"}
-        else:
-            if isinstance(e["props"]["children"], list) and (
-                len(e["props"]["children"]) != 0
-            ):
-                return {"display": "none"}
-            elif e["props"]["children"] is not None:
-                return {"display": "none"}
-            else:
-                return {"display": "block"}
+    if len(bs_components) > 0:
+        return {"display": "none"}
+    else:
+        return {"display": "block"}

@@ -4,11 +4,10 @@ Dash dash_app configuration
 import locale
 from os import getenv
 
-from dash_extensions.enrich import DashProxy, ServersideOutputTransform, FileSystemStore
 import dash_auth
-import dash_bootstrap_components as dbc
-from dash import DiskcacheManager
 import diskcache
+from dash import DiskcacheManager
+from dash_extensions.enrich import DashProxy, ServersideOutputTransform
 
 from app.layout.layout_factory import get_layout
 
@@ -21,11 +20,9 @@ cache = diskcache.Cache("./cache")
 background_callback_manager = DiskcacheManager(cache)
 
 
-# Use [dbc.themes.BOOTSTRAP] to import the full Bootstrap CSS
 dash_app = DashProxy(
     __name__,
     title="Fiche d'inspection",
-    external_stylesheets=[dbc.themes.GRID],
     external_scripts=external_scripts,
     long_callback_manager=background_callback_manager,
     transforms=[ServersideOutputTransform()],
