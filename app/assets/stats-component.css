@@ -174,11 +174,14 @@
 .sc-info-item {
     display: flex;
     margin-top: 15px;
+    align-items: center;
 }
 
 .sc-info-forbidden-image {
-    max-width: 10%;
-    margin-right: 2rem;
+    margin-right: 2em;
+    object-fit: contain;
+    max-width: 20%;
+    height: auto;
 }
 
 
