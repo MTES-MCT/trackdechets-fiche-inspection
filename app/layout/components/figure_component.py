@@ -101,6 +101,7 @@ class BSCreatedAndRevisedComponent(FigureComponent):
         bs_emitted = bs_data[
             bs_data["emitterCompanySiret"] == self.company_siret
         ].dropna(subset=["createdAt"])
+
         bs_emitted_by_month = bs_emitted.groupby(
             pd.Grouper(key="createdAt", freq="1M")
         ).id.count()

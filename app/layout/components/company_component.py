@@ -37,6 +37,7 @@ class CompanyComponent(BaseComponent):
         "ECO_ORGANISME": "Éco-organisme",
         "PRODUCER": "Producteur",
         "WASTE_VEHICLES": "Centre Véhicules Hors d'Usage",
+        "WORKER": "Entreprise de travaux",
     }
 
     def __init__(self, company_data: Dict[str, str]) -> None:
