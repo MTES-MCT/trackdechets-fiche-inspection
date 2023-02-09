@@ -1446,6 +1446,7 @@
             ],
             "index": "pypi",
             "version": "==8.9.0"
+
         },
         "ipython-genutils": {
             "hashes": [
@@ -1736,7 +1737,7 @@
                 "sha256:884a3f4a8c4fc24bb9302f263e0af47d97f0d01fe11ba714171b320c8ac09547",
                 "sha256:d97ac6257de2794f5397609df754fcbca1a603e94e924eb9b99787c031ae2e7c"
             ],
-            "markers": "python_full_version >= '3.7.0'",
+            "markers": "python_version >= '3.7'",
             "version": "==0.7.2"
         },
         "nbconvert": {

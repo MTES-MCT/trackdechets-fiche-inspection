@@ -968,6 +968,7 @@ class ICPEInfoComponent(BaseComponent):
         if len(full_df) == 0:
             return
 
+
         if (
             full_df["wasteCode"].str.contains("*", regex=False).any()
             or full_df["wastePop"].any()

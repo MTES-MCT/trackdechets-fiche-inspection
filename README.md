@@ -2,6 +2,7 @@
 
 **version 1.3.1**
 
+
 > Application basée sur Plotly Dash consacrée à la production de fiche permettant aux inspecteurs et inspectrices de
 > l'environnement de préparer l'inspection d'un établissement avec des données issues de Trackdéchets.
 
