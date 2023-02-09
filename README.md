@@ -1,6 +1,6 @@
 # Fiche d'inspection Trackdéchets
 
-**version 1.3**
+**version 1.3.1**
 
 > Application basée sur Plotly Dash consacrée à la production de fiche permettant aux inspecteurs et inspectrices de
 > l'environnement de préparer l'inspection d'un établissement avec des données issues de Trackdéchets.
@@ -33,6 +33,10 @@ pipenv run run.py
 ```
 
 ### Notes de versions
+
+**1.3.1 10/01/2023**
+- L'alerte "déchets dangereux non autorisés" est maintenant déclenchée uniquement lorsque le déchet dangereux est reçu
+- Ajout du profil établissement "WORKER"
 
 **1.3 10/01/2023**
 - Ajout des alertes sur les données ICPE
