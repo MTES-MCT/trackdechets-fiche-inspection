@@ -34,7 +34,7 @@ pipenv run run.py
 
 ### Notes de versions
 
-**1.3.1 10/01/2023**
+**1.3.1 09/02/2023**
 - L'alerte "déchets dangereux non autorisés" est maintenant déclenchée uniquement lorsque le déchet dangereux est reçu
 - Ajout du profil établissement "WORKER"
 
