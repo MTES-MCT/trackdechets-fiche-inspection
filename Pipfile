@@ -13,9 +13,9 @@ gunicorn = "*"
 python-dotenv = "*"
 dash-auth = "*"
 geopandas = "*"
+dash-extensions = "*"
 fiona = "*"
 pyogrio = "*"
-dash-extensions = "*"
 
 [dev-packages]
 jupyter = "*"

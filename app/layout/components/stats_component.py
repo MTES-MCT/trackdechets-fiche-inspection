@@ -960,6 +960,13 @@ class ICPEInfoComponent(BaseComponent):
     def _preprocess_data(self) -> None:
 
         full_df = pd.concat(self.bs_data_dfs.values())
+        full_df = full_df[
+            (full_df["recipientCompanySiret"] == self.company_siret)
+            & (full_df["receivedAt"].notna())
+        ]
+
+        if len(full_df) == 0:
+            return
 
         if (
             full_df["wasteCode"].str.contains("*", regex=False).any()
