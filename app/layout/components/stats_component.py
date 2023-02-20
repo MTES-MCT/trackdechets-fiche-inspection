@@ -312,8 +312,8 @@ class StorageStatsComponent(BaseComponent):
         )
         stock_by_waste_code.sort_values(ascending=False, inplace=True)
 
-        stock_by_waste_code = stock_by_waste_code[stock_by_waste_code > 0]
         total_stock = format_number_str(stock_by_waste_code.sum(), precision=0)
+        stock_by_waste_code = stock_by_waste_code[stock_by_waste_code > 0]
         stock_by_waste_code = stock_by_waste_code.apply(format_number_str, precision=0)
         stock_by_waste_code = pd.merge(
             stock_by_waste_code,
@@ -662,11 +662,11 @@ class ICPEItemsComponent(BaseComponent):
 
         preprocessed_inputs_filtered = preprocessed_inputs[
             (preprocessed_inputs["rubrique"] == "2718")
-        ].set_index("processedAt")
-
+        ].set_index("processedAt").rename_axis("at")
+        
         preprocessed_outputs_filtered = preprocessed_outputs[
             (preprocessed_outputs["rubrique"] == "2718")
-        ].set_index("processedAt")
+        ].set_index("sentAt").rename_axis("at")
         preprocessed_outputs_filtered["quantityReceived"] *= -1
 
         preprocessed_inputs_outputs = pd.concat(

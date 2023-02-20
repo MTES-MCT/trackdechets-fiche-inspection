@@ -22,7 +22,7 @@ where
     or "recipientCompanySiret" = '{siret}')
     and "isDeleted" = false
     and "createdAt" >= current_date - INTERVAL '1 year'
-    and cast("status" as text) not in ('DRAFT', 'INITIAL', 'SIGNED_BY_WORKER')
+    and cast("status" as text) not in ('DRAFT', 'INITIAL')
 order by
     "createdAt" asc
      
